@@ -6,7 +6,7 @@
 
 namespace kuribo {
 
-#if KURIBO_PLATFORM == KURIBO_PLATFORM_WII || KURIBO_PLATFORM == KURIBO_PLATFORM_GC
+#if KURIBO_PLATFORM == KURIBO_PL_TYPE_WII || KURIBO_PLATFORM == KURIBO_PL_TYPE_GC
     #define mfmsr()   ({u32 _rval; \
             asm volatile("mfmsr %0" : "=r" (_rval)); _rval;})
     #define mtmsr(val)  asm volatile("mtmsr %0" : : "r" (val))
@@ -18,7 +18,7 @@ namespace kuribo {
 
 inline bool setInterrupts(bool state) noexcept
 {
-#if KURIBO_PLATFORM == KURIBO_PLATFORM_WII || KURIBO_PLATFORM == KURIBO_PLATFORM_GC
+#if KURIBO_PLATFORM == KURIBO_PL_TYPE_WII || KURIBO_PLATFORM == KURIBO_PL_TYPE_GC
     u32 last = getMachineState();
     setMachineState(state ? last | 0x8000 : last & ~0x8000);
     return (last & 0x8000) >> 16;
@@ -30,7 +30,7 @@ inline bool setInterrupts(bool state) noexcept
 //  template<bool withSched=false>
 struct Critical
 {
-#if KURIBO_PLATFORM == KURIBO_PLATFORM_WII || KURIBO_PLATFORM == KURIBO_PLATFORM_GC
+#if KURIBO_PLATFORM == KURIBO_PL_TYPE_WII || KURIBO_PLATFORM == KURIBO_PL_TYPE_GC
     Critical() noexcept
     {
         restore = setInterrupts(false);
@@ -47,7 +47,7 @@ struct Critical
     bool restore;
 };
 
-#if KURIBO_PLATFORM == KURIBO_PLATFORM_WII || KURIBO_PLATFORM == KURIBO_PLATFORM_GC
+#if KURIBO_PLATFORM == KURIBO_PL_TYPE_WII || KURIBO_PLATFORM == KURIBO_PL_TYPE_GC
 struct WiiMutex {
 	void lock() noexcept {
 		GameIO::OSLockMutex(low);

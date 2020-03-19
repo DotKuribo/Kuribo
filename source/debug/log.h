@@ -4,12 +4,13 @@
 #include "types.h"
 
 #ifdef KURIBO_ENABLE_LOG
-    #if KURIBO_PLATFORM == KURIBO_PLATFORM_WII || KURIBO_PLATFORM == KURIBO_PLATFORM_GC
+    #if KURIBO_PLATFORM == KURIBO_PL_TYPE_WII || KURIBO_PLATFORM == KURIBO_PL_TYPE_GC
         // TODO
         #define KURIBO_LOG_FUNCTION(...)
     #else
         #include <stdio.h>
         #define KURIBO_LOG_FUNCTION printf
+	#endif
 
     #define STRINGIZE(x) STRINGIZE_(x)
     #define STRINGIZE_(x) #x

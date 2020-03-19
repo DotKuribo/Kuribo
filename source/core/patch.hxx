@@ -6,7 +6,7 @@
 
 namespace kuribo {
 
-#if KURIBO_PLATFORM == KURIBO_PLATFORM_WII || KURIBO_PLATFORM == KURIBO_PLATFORM_GC
+#if KURIBO_PLATFORM == KURIBO_PL_TYPE_WII || KURIBO_PLATFORM == KURIBO_PL_TYPE_GC
 #define dcbst(_val)  asm volatile("dcbst 0, %0" : : "r" (_val))
 #define dcbf(_val)  asm volatile("dcbf 0, %0" : : "r" (_val))
 #define icbi(_val)  asm volatile("icbi 0, %0" : : "r" (_val))
@@ -31,7 +31,7 @@ static inline void directWrite(T* dst, T val)
 
 	KURIBO_LOG("%u-bit write to %p (value: %08x)\n", sizeof(T) * 8, dst, val);
 
-#if KURIBO_PLATFORM == KURIBO_PLATFORM_WII || KURIBO_PLATFORM == KURIBO_PLATFORM_GC
+#if KURIBO_PLATFORM == KURIBO_PL_TYPE_WII || KURIBO_PLATFORM == KURIBO_PL_TYPE_GC
 	*dst = val;
 	flushAddr(dst);
 #endif

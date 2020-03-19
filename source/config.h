@@ -20,18 +20,15 @@
 #pragma error "Cannot build for debug and release."
 #endif
 
-enum kuribo_platform {
-    KURIBO_PLATFORM_PC, //!< Windows emulation and unit testing
-    KURIBO_PLATFORM_GC, //!< When compiling for the cube.
-    KURIBO_PLATFORM_WII, //!< It's a revolution.
-
-    KURIBO_PLATFORM_UNKNOWN
-};
+#define KURIBO_PL_TYPE_PC 0 //!< Windows emulation and unit testing
+#define KURIBO_PL_TYPE_GC 1 //!< When compiling for the cube.
+#define KURIBO_PL_TYPE_WII 2 //!< It's a revolution.
+#define KURIBO_PL_TYPE_UNKNOWN 3
 
 #ifdef KURIBO_PLATFORM_WII
-#define KURIBO_PLATFORM KURIBO_PLATFORM_WII
+#define KURIBO_PLATFORM KURIBO_PL_TYPE_WII
 #else
-#define KURIBO_PLATFORM KURIBO_PLATFORM_UNKNOWN
+#define KURIBO_PLATFORM KURIBO_PL_TYPE_UNKNOWN
 #endif
 
 #ifdef __cplusplus

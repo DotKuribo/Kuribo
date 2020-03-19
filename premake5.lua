@@ -88,13 +88,11 @@ end
 
 
 project "kuribo"
-	location "./source"
+	location "./"
 	includedirs {
 		"./source",
 		"./source/vendor"
 	}
 
-	setupStaticLib()
-	setupCppC()
-	setupSystem()
-	setupPreprocessor()
+	setupMainApp()
+	

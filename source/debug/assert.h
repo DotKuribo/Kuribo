@@ -1,5 +1,7 @@
 #pragma once
 
+#include "config.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -9,7 +11,7 @@ enum kuribo_assert_type {
     KURIBO_ASSERT_TYPE_POINTER
 };
 
-int kuribo_fail_assertion(const char* file, const char* exp, const char* msg, enum kuribo_assert_type type);
+int kuribo_fail_assertion(const char* file, int line, const char* exp, const char* msg, enum kuribo_assert_type type);
 
 
 #ifdef KURIBO_ENABLE_ASSERT

@@ -41,6 +41,11 @@
 
 *.bat
 
+.vs/*
+
+bin/*
+bin-int/*
+
 # Visual Studio files
 *.sln
 *.vcxproj
