@@ -4,6 +4,11 @@
 #include "types.h"
 #include "debug.h"
 
+
+#if KURIBO_PLATFORM != KURIBO_PL_TYPE_WII && KURIBO_PLATFORM != KURIBO_PL_TYPE_GC
+#include <mutex>
+#endif
+
 namespace kuribo {
 
 #if KURIBO_PLATFORM == KURIBO_PL_TYPE_WII || KURIBO_PLATFORM == KURIBO_PL_TYPE_GC
@@ -44,7 +49,7 @@ struct Critical
     //        GameIO::SetScheduler(true);
     }
 #endif
-    bool restore;
+    bool restore = false;
 };
 
 #if KURIBO_PLATFORM == KURIBO_PL_TYPE_WII || KURIBO_PLATFORM == KURIBO_PL_TYPE_GC

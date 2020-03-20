@@ -2,6 +2,10 @@
 #include <cstdio>
 #include <string>
 
+#include <EASTL/array.h>
+
+#include "system/memory.hxx"
+
 struct CodePrinter final : public kuribo::gecko::ICodeReceiver {
     void onCodeBegin(eastl::string_view title) override {
         std::string to_print(title.begin(), title.size());
@@ -17,8 +21,13 @@ struct CodePrinter final : public kuribo::gecko::ICodeReceiver {
 
     }
 };
+
+eastl::array<char, 1024 * 4> heap;
+
 eastl::string_view gCodeExample = "$Proc Mon PAL\n04238F14 4E800020\n04009600 48239100\n$OtherCode\n04238F14 4E800020\n04009600 48239100";
 int main() {
+    kuribo::mem::Init(heap.data(), heap.size() / 2, heap.data() + heap.size() / 2, heap.size() / 2);
+
     kuribo::gecko::CodeParser parser{ gCodeExample };
     CodePrinter printer;
     parser.parse(printer);

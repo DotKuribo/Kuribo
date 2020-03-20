@@ -25,7 +25,7 @@
 #include <EASTL/ratio.h>
 
 // Hack:
-#ifdef NARUHODO_PLATFORM_WII
+#ifdef KURIBO_PLATFORM_WII
 extern "C" uint64_t mach_absolute_time();
 #endif
 // TODO:  move to platform specific cpp or header file
@@ -590,7 +590,7 @@ namespace chrono
 			return uint64_t(frequency * queryCounter());
         #elif defined EA_PLATFORM_SONY
 			return sceKernelGetProcessTimeCounter();
-		#elif defined(EA_PLATFORM_APPLE) || defined(NARUHODO_PLATFORM_WII)
+		#elif defined(EA_PLATFORM_APPLE) || defined(KURIBO_PLATFORM_WII)
 		   return mach_absolute_time();
 		#elif defined(EA_PLATFORM_POSIX) // Posix means Linux, Unix, and Macintosh OSX, among others (including Linux-based mobile platforms).
 			#if (defined(CLOCK_REALTIME) || defined(CLOCK_MONOTONIC))

@@ -1,8 +1,9 @@
 #pragma once
 
-#include "common.hxx"
+#include "config.h"
+#include "types.h"
 
-namespace naruhodo {
+namespace kuribo {
 
 
 template<typename T>
