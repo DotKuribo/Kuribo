@@ -72,14 +72,14 @@ void* _malloc(u32 s);
 void* _realloc(void* ptr, u32 size);
 
 
-namespace kuribo {
-namespace mem {
+namespace kuribo::mem {
+
 template<GlobalHeapType H>
 class Allocator
 {
 public:
 	inline Allocator(const char* = nullptr)
-		: mHeap(GlobalHeap<H>())
+		: mHeap(GetHeap(H))
 	{}
 
 	//	inline Allocator(const Allocator&)
@@ -126,6 +126,4 @@ public:
 	Heap& mHeap;
 };
 
-
-}
 } // namespace kuribo::mem

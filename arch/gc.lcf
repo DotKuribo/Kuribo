@@ -1,0 +1,20 @@
+ENTRY(_start)
+
+SECTIONS {
+. = 0x808ee920;
+.text 0x808ee920 : ALIGN(0x20){}
+
+.ctors ALIGN(0x20):{_f_ctors = .;}
+.dtors ALIGN(0x20):{}
+.rodata ALIGN(0x20):{}
+.data ALIGN(0x20):{}
+.sdata ALIGN(0x20):{}
+.sbss ALIGN(0x20):{}
+.sdata2 ALIGN(0x20):{}
+.sbss2 ALIGN(0x20):{}
+_f_bss = .;
+.bss ALIGN(0x20):{}
+
+}
+
+

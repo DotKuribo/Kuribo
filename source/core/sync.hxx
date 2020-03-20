@@ -12,7 +12,7 @@
 namespace kuribo {
 
 #if KURIBO_PLATFORM == KURIBO_PL_TYPE_WII || KURIBO_PLATFORM == KURIBO_PL_TYPE_GC
-    #define mfmsr()   ({u32 _rval; \
+    #define mfmsr()   ({volatile  u32 _rval; \
             asm volatile("mfmsr %0" : "=r" (_rval)); _rval;})
     #define mtmsr(val)  asm volatile("mtmsr %0" : : "r" (val))
     inline u32	getMachineState() noexcept { return mfmsr();}
@@ -52,6 +52,7 @@ struct Critical
     bool restore = false;
 };
 
+#if 0
 #if KURIBO_PLATFORM == KURIBO_PL_TYPE_WII || KURIBO_PLATFORM == KURIBO_PL_TYPE_GC
 struct WiiMutex {
 	void lock() noexcept {
@@ -70,6 +71,7 @@ private:
 using Mutex = WiiMutex;
 #else
 using Mutex = std::mutex;
+#endif
 #endif
 
 } // namespace kuribo

@@ -8,9 +8,7 @@
 
 namespace kuribo::io {
 
-#define __OSReport(...) do { \
-	( (void (*) (const char*, ...)) FFI_NAME(os_report)) (__VA_ARGS__); \
-	} while (0)
+
 static inline void OSFatal(const char* msg, u32 fg = -1, u32 bg = 0)
 {
 	((void(*)(u32*, u32*, const char*))FFI_NAME(os_fatal))(&fg, &bg, msg);

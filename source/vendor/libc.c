@@ -43,7 +43,7 @@ void* memset(void* dest, int val, unsigned int len)
 }
 
 void*
-memmove(void* dest, const void* src, int len)
+memmove(void* dest, const void* src, unsigned int len)
 {
 	char* d = (char*)dest;
 	const char* s = (const char*)src;

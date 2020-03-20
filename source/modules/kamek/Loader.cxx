@@ -1,5 +1,8 @@
 #include "Loader.hxx"
 
+#include "core/patch.hxx"
+#include "core/sync.hxx"
+
 namespace kuribo {
 
 struct KBHeader {

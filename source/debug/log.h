@@ -3,10 +3,15 @@
 #include "config.h"
 #include "types.h"
 
+
+
 #ifdef KURIBO_ENABLE_LOG
     #if KURIBO_PLATFORM == KURIBO_PL_TYPE_WII || KURIBO_PLATFORM == KURIBO_PL_TYPE_GC
-        // TODO
-        #define KURIBO_LOG_FUNCTION(...)
+		#include "api/HostInterop.h"
+		#define __OSReport(...) do { \
+			( (void (*) (const char*, ...)) FFI_NAME(os_report)) (__VA_ARGS__); \
+			} while (0)
+        #define KURIBO_LOG_FUNCTION __OSReport
     #else
         #include <stdio.h>
         #define KURIBO_LOG_FUNCTION printf
