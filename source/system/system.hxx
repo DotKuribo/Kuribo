@@ -10,6 +10,8 @@
 #include "util/deferred.hxx"
 #include "core/sync.hxx"
 
+#include "modules/Project.hxx"
+
 
 namespace kuribo {
 
@@ -38,6 +40,7 @@ public:
 
 private:
 	AbortHandler mAbortHandler = DefaultAbortHandler;
+	ProjectManager mProjectManager;
 public:
     System() = default;
     ~System() = default;

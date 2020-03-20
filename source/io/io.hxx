@@ -1,8 +1,6 @@
 #pragma once
 
-#include "config.h"
-#include "types.h"
-#include "debug.h"
+#include "common.h"
 #include "api/HostInterop.h"
 
 #include <EASTL/unique_ptr.h>
@@ -87,7 +85,7 @@ inline eastl::unique_ptr<u8[]> loadFile(const char* path, int* size, int* rsize,
 	if (!file.bOpened)
 		return nullptr;
 
-	u8* buf = new (heap ? heap : &kuribo::mem::GetInternalHeap(), 32) u8[file.getRoundedSize()];
+	u8* buf = new (heap ? heap : &kuribo::mem::GetDefaultHeap(), 32) u8[file.getRoundedSize()];
 	KURIBO_ASSERT(buf && "Cannot allocate buffer.");
 
 	if (rsize) *rsize = file.getRealSize();
@@ -103,7 +101,7 @@ inline eastl::string loadFileString(const char* path, kuribo::mem::Heap* heap = 
 	KURIBO_ASSERT(file.bOpened);
 	if (!file.bOpened) return "";
 
-	u8* buf = new (heap ? heap : &kuribo::mem::GetInternalHeap(), 32) u8[file.getRoundedSize()];
+	u8* buf = new (heap ? heap : &kuribo::mem::GetDefaultHeap(), 32) u8[file.getRoundedSize()];
 	KURIBO_ASSERT(buf && "Cannot allocate buffer.");
 
 	file.read(buf, file.getRoundedSize(), 0);

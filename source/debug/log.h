@@ -44,8 +44,9 @@ private:
 		for (int i = 0; i < sLogIndent; ++i)
 			out[i] = '\t';
 	}
-	static int sLogIndent;
 #endif
+	static int sLogIndent;
+
 };
 #endif
 
