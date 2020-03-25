@@ -37,12 +37,13 @@ public:
 		mAbortHandler(reason);
 	}
 	void setAbortHandler(AbortHandler handler) { mAbortHandler = handler; }
+	bool loadCodeTextFile(const eastl::string_view path);
 
 private:
 	AbortHandler mAbortHandler = DefaultAbortHandler;
 	ProjectManager mProjectManager;
 public:
-    System() = default;
+    System();
     ~System() = default;
 };
 

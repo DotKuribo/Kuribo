@@ -9,6 +9,8 @@
 #include <EASTL/memory.h>
 #include <cstdio>
 
+#include "gecko/CodeManager.hxx"
+
 namespace kuribo {
 
 struct IModule
@@ -59,8 +61,15 @@ public:
 		return true;
 	}
 
+	gecko::CodeManagerDelegate getGeckoDelegate() {
+		return { mGeckoManager, "TODO.txt" };
+	}
+
+	bool loadCodeHandler(const eastl::string_view path);
+	const gecko::CodeManager& getCodeManager() const { return mGeckoManager; }
 private:
 	eastl::vector<eastl::unique_ptr<ModuleInstance>> mModules;
+	gecko::CodeManager mGeckoManager;
 };
 
 

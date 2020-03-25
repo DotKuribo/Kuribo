@@ -1,13 +1,20 @@
-#include "Frontend.hpp"
+#include "config.h"
+#include "Frontend.hxx"
+#include "debug/log.h"
 
 namespace kuribo::gecko {
 
+
+bool isLineEnd(char in) { return in == '\n' || in == '\r'; };
+
 void CodeParser::parse(ICodeReceiver& out) {
-    auto isLineEnd = [](char in) { return in == '\n' || in == '\r'; };
     while (mCursor < mData.size()) {
         if (mData[mCursor] == '$') {
             const auto titlebegin = ++mCursor;
-            while (mCursor < mData.size() && !isLineEnd(mData[mCursor])) {
+            while (mCursor < mData.size()) {
+                if (isLineEnd(mData[mCursor])) {
+                    break;
+                }
                 ++mCursor;
             }
             out.onCodeBegin({mData.data() + titlebegin, mCursor-titlebegin});
@@ -15,7 +22,10 @@ void CodeParser::parse(ICodeReceiver& out) {
             ++mCursor;
         } else {
             const auto chunkbegin = mCursor;
-            while (mCursor < mData.size() && !isLineEnd(mData[mCursor]) && mData[mCursor] != ' ') {
+            while (mCursor < mData.size()) {
+                if (isLineEnd(mData[mCursor]) || mData[mCursor] == ' ') {
+                    break;
+                }
                 ++mCursor;
             }
             eastl::string_view chunk {mData.data() + chunkbegin, mCursor - chunkbegin};
@@ -28,8 +38,8 @@ void CodeParser::parse(ICodeReceiver& out) {
             for (char c : chunk) {
                 u8 val = 0;
                 if (c >= '0' && c <= '9') val = c - '0';
-                else if (c >= 'a' && c <= 'f') c = c - 'a' + 10;
-                else if (c >= 'A' && c <= 'F') c = c - 'A' + 10;
+                else if (c >= 'a' && c <= 'f') val = c - 'a' + 10;
+                else if (c >= 'A' && c <= 'F') val = c - 'A' + 10;
                 chunk_data <<= 4;
                 chunk_data |= val & 0xf; 
             }

@@ -1,0 +1,24 @@
+#pragma once
+
+#include "common.h"
+#include "Frontend.hxx"
+
+namespace kuribo::gecko {
+
+class CodePrinter final : public kuribo::gecko::ICodeReceiver {
+public:
+    void onCodeBegin(eastl::string_view title) override {
+        eastl::string to_print(title.begin(), title.size());
+        KURIBO_LOG("\nCode: %s\n=====\n", to_print.c_str());
+    }
+    void onCodeChunk(u32 chunk) override {
+        KURIBO_LOG_FUNCTION("%08x%c", chunk, odd ? ' ' : '\n');
+        odd = !odd;
+    }
+    void onParseFail() override {}
+    void onEnd() override {}
+private:
+    bool odd = true;
+};
+
+} // namespace kuribo::gecko

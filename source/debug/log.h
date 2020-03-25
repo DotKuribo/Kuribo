@@ -23,16 +23,19 @@
     #define KURIBO_LOG(...) KURIBO_LOG_FUNCTION("[" __FILE__ ":" LINE_STRING "] " __VA_ARGS__ )
 #else
     #define KURIBO_LOG(...)
+	#define KURIBO_LOG_FUNCTION(...)
 #endif
 
 #ifdef __cplusplus
 struct ScopedLog {
 #ifdef KURIBO_ENABLE_LOG
 	ScopedLog(const char* msg, const char* file = nullptr, int line = -1, const char* fn = nullptr)
+		: m_msg(msg)
 	{
 		char ibuf[20]{};
-		indent(ibuf, 20);
-		KURIBO_LOG_FUNCTION("\n%s@%i in %s: %s%s {\n", file ? file : "", line, fn, ibuf, msg);
+		ibuf[0] = ' ';
+		// indent(ibuf, 20);
+		KURIBO_LOG_FUNCTION("\n<%s:%i in %s: %s%s> {\n", file ? file : "", line, fn, &ibuf, msg);
 		++sLogIndent;
 		
 	}
@@ -40,8 +43,9 @@ struct ScopedLog {
 	{
 		--sLogIndent;
 		char ibuf[20]{};
-		indent(ibuf, 20);
-		KURIBO_LOG_FUNCTION("%s}\n", ibuf);
+		ibuf[0] = ' ';
+		// indent(ibuf, 20);
+		KURIBO_LOG_FUNCTION("%s} </%s> \n", &ibuf, m_msg);
 	}
 private:
 	void indent(char* out, u32 size)
@@ -49,6 +53,7 @@ private:
 		for (int i = 0; i < sLogIndent; ++i)
 			out[i] = '\t';
 	}
+	const char* m_msg;
 #endif
 	static int sLogIndent;
 

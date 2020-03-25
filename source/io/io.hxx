@@ -75,6 +75,7 @@ struct Handle : public low_dvd_Handle
 
 		return dvd::read(*this, buf, size, offset);
 	}
+	bool opened() const { return bOpened; }
 	bool bOpened = false;
 };
 inline eastl::unique_ptr<u8[]> loadFile(const char* path, int* size, int* rsize, kuribo::mem::Heap* heap = nullptr)
@@ -93,20 +94,16 @@ inline eastl::unique_ptr<u8[]> loadFile(const char* path, int* size, int* rsize,
 
 	return eastl::unique_ptr<u8[]>(buf);
 }
-inline eastl::string loadFileString(const char* path, kuribo::mem::Heap* heap = nullptr)
+inline eastl::string loadFileString(const char* path)
 {
 	Handle file(path);
-	KURIBO_ASSERT(file.bOpened);
-	if (!file.bOpened) return "";
+	KURIBO_ASSERT(file.opened());
+	if (!file.opened()) return "";
 
-	u8* buf = new (heap ? heap : &kuribo::mem::GetDefaultHeap(), 32) u8[file.getRoundedSize()];
-	KURIBO_ASSERT(buf && "Cannot allocate buffer.");
-
-	file.read(buf, file.getRoundedSize(), 0);
-
-	eastl::string result = eastl::string((char*)buf, file.getRoundedSize());
-	result.resize(file.getRealSize());
-	return result;
+	eastl::unique_ptr<u8[]> tmp{ new (nullptr, 32) u8 [file.getRoundedSize()] };
+	file.read(tmp.get(), file.getRoundedSize(), 0);
+	
+	return { reinterpret_cast<char*>(tmp.get()), file.getRealSize() };
 }
 }
 
