@@ -146,7 +146,7 @@ class Project:
                                      r"..\source",
                                      r"..\source\vendor"
                                   ],
-                                 ["-O3" if not debug else "-O0", "-mcpu=750cl"]  # ["-Os"]
+                                 ["-O3" if not debug else "-O1 -fno-inline", "-mcpu=750cl"]  # ["-Os"]
                                  )
 
         # Synthesize

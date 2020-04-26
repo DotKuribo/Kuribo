@@ -13,8 +13,18 @@
 #include "modules/gecko/CodeManager.hxx"
 
 #include "system/system.hxx"
+#include <core/patch.hxx>
+
+void GeckoJIT_RunTests();
 
 namespace tests {
+    void CodeJIT() {
+KURIBO_SCOPED_LOG("Code Parsing Test");
+
+      
+      GeckoJIT_RunTests();
+
+    }
     void CodeParser() {
         KURIBO_SCOPED_LOG("Code Parsing Test");
 
@@ -71,11 +81,17 @@ eastl::array<char, 1024 * 4 * 4 * 4> heap;
 void comet_app_install(void* image, void* vaddr_load, uint32_t load_size) {    
     KURIBO_SCOPED_LOG("Installing...");
 
-    for (auto& c : heap) c = 0;
+    heap = {};
+#ifndef _WIN32
+    for (int i = 0; i < heap.size(); i += 32)
+      kuribo::flushAddr(&heap[0] + i);
+#endif
+    heap = {};
     
+
     const auto heap_halfsize = heap.size() / 2;
     kuribo::mem::Init(heap.data(), heap_halfsize, heap.data() + heap_halfsize, heap_halfsize);
-
+    tests::CodeJIT();
     tests::CodeParser();
     if (kuribo::BuildPlatform != kuribo::platform::PC) {
         // tests::CodeParserFromDisc();

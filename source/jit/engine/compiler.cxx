@@ -1,0 +1,352 @@
+#include "compiler.hpp"
+#include "engine.hpp"
+#include <EASTL/array.h>
+#include <bitset>
+
+namespace gecko_jit {
+
+union D_Form {
+  struct {
+#ifdef _WIN32
+    u32 SIMM : 16;
+    u32 Source : 5;
+    u32 Destination : 5;
+    u32 InstructionID : 6;
+#else
+    u32 InstructionID : 6;
+    u32 Destination : 5;
+    u32 Source : 5;
+    u32 SIMM : 16;
+#endif
+  };
+  u32 hex;
+};
+enum {
+  PPC_OP_ADDIS = 15,
+  PPC_OP_BC = 16,
+  PPC_OP_B = 18,
+  PPC_OP_B_MISC = 19,
+  PPC_OP_ADDI = 14,
+  PPC_OP_LWZ = 32,
+  PPC_OP_STHU = 45,
+  PPC_OP_LFS = 48,
+  PPC_OP_STFDU = 55,
+  PPC_OP_ORI = 24,
+  PPC_OP_STB = 38,
+  PPC_OP_STH = 44,
+  PPC_OP_STW = 36
+};
+
+struct LinearExecutionState {
+  // Let's keep track of the last value of registers
+  // Let r14, r15, r16 they could be whatever
+
+  bool isKnown(u8 reg) {
+    return reg >= 14 && reg <= 31 && register_values_known[reg + 14] != 0;
+  }
+  void remember(u8 reg, u32 value) {
+    if (reg < 14 || reg > 31)
+      return;
+    register_values_known[reg - 14] = value;
+    register_values[reg - 14] = value;
+  }
+  u32 recall(u8 reg) {
+    if (reg < 14 || reg > 31)
+      return 0;
+    return register_values[reg - 14];
+  }
+  void forget(u8 reg) {
+    if (reg >= 14 && reg <= 31)
+      register_values_known[reg - 14] = 0;
+  }
+
+  u8 *allocInstruction(u32 size) {
+    return mEngine.alloc(JITEngine::CodeHeap::ExecuteEveryFrame, size);
+  }
+  template <typename T> T *allocInstruction() {
+    return reinterpret_cast<T *>(allocInstruction(sizeof(T)));
+  }
+  u8 *allocData(u32 size) {
+    return mEngine.alloc(JITEngine::CodeHeap::ExecuteOnDemand, size);
+  }
+
+  LinearExecutionState(JITEngine &engine) : mEngine(engine) {}
+
+private:
+  // Optimizing away loads is difficult when you can't know the next
+  // instruction. You could be overwriting a constant just for the next to use
+  // it! This system is primitive -- it'll break with jumps. It will just
+  // prevent the most basic repetitive instructions
+  eastl::array<u32, 18> register_values{}; // r14-r31
+  std::bitset<32> register_values_known{};
+
+  JITEngine &mEngine;
+};
+
+//! @brief Compile an immediate (32-bit, integral) load to a register.
+//!
+//! @param[in] state  State of the compiled function.
+//! @param[in] reg    Register to output to
+//! @param[in] value  Value to set.
+//!
+//! @details
+//!
+//! If the value is already set, do nothing.
+//! If value can be stored in a SIMM without worry of sign-extension:
+//! - li reg, value
+//! Otherwise:
+//! - lis reg, value@h
+//! - ori reg, reg, value@l
+//!
+void compileImmediateLoad(LinearExecutionState &state, u8 reg, u32 value) {
+  if (state.isKnown(reg)) {
+    const u32 prior_value = state.recall(reg);
+    if (prior_value == value) {
+      // The value is already set. We don't need to do anything.
+      return;
+    } else {
+      // TODO
+      // If only the low bit differs, use an addi to offset them!
+    }
+  }
+  state.remember(reg, value);
+
+  if (value < 0x7FFF) {
+    D_Form *li = state.allocInstruction<D_Form>();
+    li->InstructionID = PPC_OP_ADDI;
+    li->Destination = reg;
+    li->Source = 0;
+    li->SIMM = value & 0xffff;
+  } else {
+    D_Form *lis = state.allocInstruction<D_Form>();
+    lis->InstructionID = PPC_OP_ADDIS;
+    lis->Destination = reg;
+    lis->Source = 0;
+    lis->SIMM = (value >> 16) & 0xffff;
+
+    D_Form *ori = state.allocInstruction<D_Form>();
+    ori->InstructionID = PPC_OP_ORI;
+    ori->Destination = reg;
+    ori->Source = reg;
+    ori->SIMM = value & 0xffff;
+  }
+}
+
+//! @brief Generates load/store instruction packages
+//!
+//! @param[in] engine    The JIT engine
+//! @param[in] sourceReg Register to set address with
+//! @param[in] destReg   The register to load/store with
+//! @param[in] address   Address to load/store from
+//! @param[in] value     Value to store at address
+//! @param[in] size      Size of the value to store,
+//!                      should be 1, 2, 4
+//!
+//! @details
+//!
+//! Generates a store of the given value
+//! to the given address using the
+//! designated registers
+//!
+void compileStore(LinearExecutionState &engine, u8 sourceReg, u8 destReg,
+                  u32 address, u32 value, u8 size) {
+
+  compileImmediateLoad(engine, sourceReg, address);
+  compileImmediateLoad(engine, destReg, value); // this creates our value
+
+  D_Form *stw = engine.allocInstruction<D_Form>();
+
+  if (size == sizeof(u8)) {
+    stw->InstructionID = PPC_OP_STB;
+  } else if (size == sizeof(u16)) {
+    stw->InstructionID = PPC_OP_STH;
+  } else {
+    stw->InstructionID = PPC_OP_STW;
+  }
+  stw->Destination = destReg;
+  stw->Source = sourceReg;
+  stw->SIMM = 0;
+}
+
+void compileBranch(LinearExecutionState &state, u32 target, bool link = true) {
+  u32 *bl = state.allocInstruction<u32>();
+  const u32 offset = (u32)target - (u32)bl;
+  *bl = ((offset & 0x3ffffff) | 0x48000000 | link);
+}
+
+//! @brief Generates an array write
+//!
+//! @param[in] engine     The JIT engine
+//! @param[in] sourceReg  Register to set address with
+//! @param[in] destReg    The register to load/store with
+//! @param[in] address    Address to load/store from
+//! @param[in] valueArray Value to store at address
+//! @param[in] valueCount Number of values in the array.
+//!
+void compileArrayCopy(LinearExecutionState &engine, u8 sourceReg, u8 destReg,
+                      u32 address, u8 *valueArray, size_t value_count) {
+  // Use a memcpy if too big
+  if (value_count > 8) {
+    u8 *data = engine.allocData(value_count);
+    memcpy(data, valueArray, value_count);
+    // Now we know that data won't be freed on us or overwritten.
+    // (we have no such guarantee for valueArray)
+    // We need to actually generate the bl
+    compileImmediateLoad(engine, 3, address);     // dst
+    compileImmediateLoad(engine, 4, (u32)data);   // src
+    compileImmediateLoad(engine, 5, value_count); // size
+    compileBranch(engine, (u32)&memcpy, true);
+    return;
+  }
+
+  for (u32 i = 0; i < value_count; ++i) {
+    compileStore(engine, sourceReg, destReg, address + i, valueArray[i],
+                 sizeof(u8));
+  }
+}
+
+#ifndef _WIN32
+__attribute__((noinline))
+#endif
+// void __memset(u8* dst, u8 fill, u32 count) {
+//   std::fill(dst, dst + count, fill);
+// }
+#define __memset memset
+#ifndef _WIN32
+__attribute__((noinline))
+#endif
+void __memset2(u16* dst, u16 fill, u32 count) {
+  std::fill(dst, dst + count, fill);
+}
+#ifndef _WIN32
+__attribute__((noinline))
+#endif
+void __memset4(u32* dst, u32 fill, u32 count) {
+  std::fill(dst, dst + count, fill);
+}
+
+void compileArraySet(LinearExecutionState &engine, u32 address, u32 value,
+                     size_t value_count, u8 value_size) {
+
+  // Create memset call
+  compileImmediateLoad(engine, 3, address);     // dst
+  compileImmediateLoad(engine, 4, value);       // fill
+  compileImmediateLoad(engine, 5, value_count); // size
+
+  switch (value_size) {
+  case 1:
+    compileBranch(engine, (u32)&__memset, true);
+    break;
+  case 2:
+    compileBranch(engine, (u32)&__memset2, true);
+    break;
+  case 4:
+  default:
+    compileBranch(engine, (u32)&__memset4, true);
+    break;
+  }
+}
+
+void compileSerialWrite(LinearExecutionState &engine, u8 sourceReg, u8 destReg,
+                        u32 address, u32 value, u16 value_count,
+                        u16 address_increment, u32 value_increment,
+                        u8 value_size) {
+  for (u32 i = 0; i < value_count; ++i) {
+    compileStore(engine, sourceReg, destReg, address + (i * address_increment),
+                 value + (i * value_increment), value_size);
+  }
+}
+//! stwu r1, -0x20 (r1)
+//! mflr r0
+//! stw r0, 0x8 (r1)
+//! stw r14, 0xC (r1)
+//! stw r15, 0x10 (r1)
+static u32 __prologue[5]{0x9421FFE0, 0x7C0802A6, 0x90010008, 0x91C1000C,
+                        0x91E10010};
+//! lwz r15, 0x10 (r1)
+//! lwz r14, 0xC (r1)
+//! lwz r0, 0x8 (r1)
+//! mtlr r0
+//! addi r1, r1, 0x20
+//! blr
+static u32 __epilogue[6]{0x81E10010, 0x81C1000C, 0x80010008,
+                        0x7C0803A6, 0x38210020, 0x4E800020};
+
+bool BeginCodeList(JITEngine &engine) {
+  u32 *block = (u32 *)engine.alloc(JITEngine::CodeHeap::ExecuteEveryFrame,
+                                   5 * 4);
+  memcpy(block, &__prologue[0], 6 * 4);
+  return true;
+}
+bool EndCodeList(JITEngine &engine) {
+  u32 *block = (u32 *)engine.alloc(JITEngine::CodeHeap::ExecuteEveryFrame,
+                                   6 * 4);
+  memcpy(block, &__epilogue[0], 6 * 4);
+  return true;
+}
+
+#ifndef _WIN32
+__attribute__((noinline))
+#endif
+bool CompileCodeList(JITEngine &engine, const u32 *list, size_t size) {
+  LinearExecutionState state(engine);
+
+  u32 bp = 0x80000000;
+
+  auto Handle0002 = [&](u32 op, u32 address, u32 valueInfo) {
+    u32 thing_size = 1;
+    u32 mask = 0xff;
+    if (op == 0x02) {
+      thing_size = 2;
+      mask = 0xffff;
+    }
+    compileArraySet(state, address, (valueInfo & mask),
+                    ((valueInfo >> 16) & 0xFFFF), thing_size);
+  };
+  auto Handle04 = [&](u32 address, u32 value) {
+    compileStore(state, 14, 15, address, value, sizeof(u32));
+  };
+
+  auto Handle06 = [&](u32 address, u32 value_count, u8 *value_array) {
+    compileArrayCopy(state, 14, 15, address, value_array, value_count);
+  };
+
+  auto Handle08 = [&](u32 address, u32 value, u32 writeInfo,
+                      u32 value_increment) {
+    compileSerialWrite(state, 14, 15, address, value,
+                       ((writeInfo >> 16) & 0xFFF), (writeInfo & 0xFFFF),
+                       value_increment, ((writeInfo >> 31) & 3));
+  };
+
+  u32 i = 0;
+  while (i < size / 4) {
+    const u32 op = (list[i] & 0xfe000000) >> 24;
+    switch (op) {
+    case 0x00:
+    case 0x02:
+      Handle0002(op, bp + (list[i] & 0x01ffffff), list[i + 1]);
+      i += 2;
+      break;
+    case 0x04:
+      Handle04(bp + (list[i] & 0x01ffffff), list[i + 1]);
+      i += 2;
+      break;
+    case 0x06:
+      Handle06(bp + (list[i] & 0x01ffffff), list[i + 1], (u8 *)&list[i + 2]);
+      i += 2 + list[i + 1] / 4;
+      break;
+    case 0x08:
+      Handle08(bp + (list[i] & 0x01ffffff), list[i + 1], list[i + 2],
+               list[i + 3]);
+      i += 4;
+      break;
+    default:
+      // Unknown code, exit early
+      return false;
+    }
+  }
+
+  return true;
+}
+
+} // namespace gecko_jit
