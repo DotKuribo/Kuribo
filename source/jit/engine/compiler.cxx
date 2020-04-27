@@ -2,6 +2,7 @@
 #include "engine.hpp"
 #include <EASTL/array.h>
 #include <bitset>
+#include <core/patch.hxx>
 
 namespace gecko_jit {
 
@@ -22,19 +23,23 @@ union D_Form {
   u32 hex;
 };
 enum {
+  PPC_OP_ADDI = 14,
   PPC_OP_ADDIS = 15,
   PPC_OP_BC = 16,
   PPC_OP_B = 18,
   PPC_OP_B_MISC = 19,
-  PPC_OP_ADDI = 14,
+  PPC_OP_DCBST = 31,
+  PPC_OP_ICBI = 31,
+  PPC_OP_ISYNC = 19,
   PPC_OP_LWZ = 32,
-  PPC_OP_STHU = 45,
   PPC_OP_LFS = 48,
-  PPC_OP_STFDU = 55,
   PPC_OP_ORI = 24,
   PPC_OP_STB = 38,
+  PPC_OP_STFDU = 55,
+  PPC_OP_STHU = 45,
   PPC_OP_STH = 44,
-  PPC_OP_STW = 36
+  PPC_OP_STW = 36,
+  PPC_OP_SYNC = 31
 };
 
 struct LinearExecutionState {
@@ -168,6 +173,10 @@ void compileStore(LinearExecutionState &engine, u8 sourceReg, u8 destReg,
   stw->SIMM = 0;
 }
 
+void compileBranch(u32 *address, const char *target, bool link = true) {
+  kuribo::directBranchEx(address, (void*)target, link);
+}
+
 void compileBranch(LinearExecutionState &state, u32 target, bool link = true) {
   u32 *bl = state.allocInstruction<u32>();
   const u32 offset = (u32)target - (u32)bl;
@@ -256,13 +265,38 @@ void compileSerialWrite(LinearExecutionState &engine, u8 sourceReg, u8 destReg,
                  value + (i * value_increment), value_size);
   }
 }
+
+void compileExecuteASM(LinearExecutionState &engine, u8 *funcPointer,
+                       u32 size) {
+  u8 *data = engine.allocData(size * 8);
+  memcpy(data, (u8 *)funcPointer, (size * 8));
+  //KURIBO_LOG("data = 0x%X, funcPointer = 0x%X, size = 0x%X funcPointer data = %x", data,funcPointer,(size*8));
+  compileImmediateLoad(engine, 15,
+                       (u32)data); // r15 = start of code, for compatibility
+  compileBranch(engine, (u32)data, true);
+}
+
+void compileInjectASM(LinearExecutionState &engine, u8 *funcPointer,
+                      u32 *address, u32 size) {
+  u8 *data = engine.allocData(size * 8);
+  memcpy(data, (u8 *)funcPointer, (size * 8));
+  compileBranch((u32*)address, (const char*)data, false);
+  compileBranch((u32*)(data + (size * 8) - 4), (const char*)(address + 1),
+                false); //calculates offsets to branch from end of code to address + 4
+}
+
+// dcbf, sync, icbi, sync, isync
+void compileCacheClear(LinearExecutionState &state, u8 reg) {
+  *state.allocInstruction<u32>() = 0x3333; // Put an assembled instruction here
+}
+
 //! stwu r1, -0x20 (r1)
 //! mflr r0
 //! stw r0, 0x8 (r1)
 //! stw r14, 0xC (r1)
 //! stw r15, 0x10 (r1)
 static u32 __prologue[5]{0x9421FFE0, 0x7C0802A6, 0x90010008, 0x91C1000C,
-                        0x91E10010};
+                         0x91E10010};
 //! lwz r15, 0x10 (r1)
 //! lwz r14, 0xC (r1)
 //! lwz r0, 0x8 (r1)
@@ -270,17 +304,17 @@ static u32 __prologue[5]{0x9421FFE0, 0x7C0802A6, 0x90010008, 0x91C1000C,
 //! addi r1, r1, 0x20
 //! blr
 static u32 __epilogue[6]{0x81E10010, 0x81C1000C, 0x80010008,
-                        0x7C0803A6, 0x38210020, 0x4E800020};
+                         0x7C0803A6, 0x38210020, 0x4E800020};
 
 bool BeginCodeList(JITEngine &engine) {
-  u32 *block = (u32 *)engine.alloc(JITEngine::CodeHeap::ExecuteEveryFrame,
-                                   5 * 4);
+  u32 *block =
+      (u32 *)engine.alloc(JITEngine::CodeHeap::ExecuteEveryFrame, 5 * 4);
   memcpy(block, &__prologue[0], 6 * 4);
   return true;
 }
 bool EndCodeList(JITEngine &engine) {
-  u32 *block = (u32 *)engine.alloc(JITEngine::CodeHeap::ExecuteEveryFrame,
-                                   6 * 4);
+  u32 *block =
+      (u32 *)engine.alloc(JITEngine::CodeHeap::ExecuteEveryFrame, 6 * 4);
   memcpy(block, &__epilogue[0], 6 * 4);
   return true;
 }
@@ -288,7 +322,7 @@ bool EndCodeList(JITEngine &engine) {
 #ifndef _WIN32
 __attribute__((noinline))
 #endif
-bool CompileCodeList(JITEngine &engine, const u32 *list, size_t size) {
+bool CompileCodeList(JITEngine& engine, const u32* list, size_t size) {
   LinearExecutionState state(engine);
 
   u32 bp = 0x80000000;
@@ -318,6 +352,18 @@ bool CompileCodeList(JITEngine &engine, const u32 *list, size_t size) {
                        value_increment, ((writeInfo >> 31) & 3));
   };
 
+  auto HandleC0 = [&](u32 funcpointer, u32 size) {
+    compileExecuteASM(state, (u8 *)funcpointer, size);
+  };
+
+  auto HandleC2 = [&](u32 address, u32 funcpointer, u32 size) {
+    compileInjectASM(state, (u8 *)funcpointer, (u32 *)address, size);
+  };
+
+  auto HandleC6 = [&](u32 address, u32 target) {
+    compileBranch((u32 *)address, (const char *)target, false);
+  };
+
   u32 i = 0;
   while (i < size / 4) {
     const u32 op = (list[i] & 0xfe000000) >> 24;
@@ -340,6 +386,21 @@ bool CompileCodeList(JITEngine &engine, const u32 *list, size_t size) {
                list[i + 3]);
       i += 4;
       break;
+    case 0x20:
+      break;
+    case 0x28:
+      break;
+    case 0xC0:
+      HandleC0((u32)&list[i + 2], list[i + 1]);
+      i += 2 + (list[i + 1] * 2);
+      break;
+    case 0xC2:
+      HandleC2(bp + (list[i] & 0x01ffffff), (u32)&list[i + 2], list[i + 1]);
+      i += 2 + (list[i + 1] * 2);
+      break;
+    case 0xC6:
+      HandleC6(bp + (list[i] & 0x01ffffff), list[i + 1]);
+      i += 2;
     default:
       // Unknown code, exit early
       return false;
