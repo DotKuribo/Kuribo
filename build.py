@@ -2,6 +2,8 @@ import os, subprocess, shutil, glob, json
 from pathlib import Path
 import sys
 
+DEVKIT_CPP_VERSION = "8.4.0"
+
 
 def system_cmd(cmd):
     # print(cmd)
@@ -139,9 +141,9 @@ class Project:
                                      "KURIBO_DEBUG" if debug else "KURIBO_RELEASE"],
                                  [
 
-                                     "C:\\devkitPro\\devkitPPC\\powerpc-eabi\\include\\c++\\6.3.0",
+                                     "C:\\devkitPro\\devkitPPC\\powerpc-eabi\\include\\c++\\" + DEVKIT_CPP_VERSION,
                                      "C:\\devkitPro\\devkitPPC\\powerpc-eabi\\include",
-                                     "C:\\devkitPro\\devkitPPC\\powerpc-eabi\\include\\c++\\6.3.0\\powerpc-eabi",
+                                     "C:\\devkitPro\\devkitPPC\\powerpc-eabi\\include\\c++\\" + DEVKIT_CPP_VERSION + "\powerpc-eabi",
 
                                      r"..\source",
                                      r"..\source\vendor"
@@ -157,12 +159,15 @@ class Project:
             system.clang.archive(objects, output_path + ".a")
             return output_path + '.a'
         elif self.cfg["type"] == "comet":
+            libs = []
             if "libraries" in self.cfg:
-                for lib in self.cfg["libraries"]:
+                libs = self.cfg["libraries"]
+            for lib in libs:# + ["C:\\devkitPro\\devkitPPC\\powerpc-eabi\\lib\\libstdc++.a"]:
+                if not lib.endswith(".a"):
                     lib = os.path.join(os.path.join(output_dir, "../"), lib) + "/" + lib
                     if debug: lib += "D"
                     lib += ".a"
-                    objects += [lib]
+                objects.append(lib)
             system.clang.link(objects, output_path + ".elf")
             # system.aria.convert_cmx(output_path + ".elf", output_path + ".cmx")
             system_cmd("C:\\devkitPro\\devkitPPC\\bin\\powerpc-eabi-objcopy.exe -O binary " + output_path + ".elf " + output_path + ".cmx")

@@ -26,8 +26,17 @@ const static std::array<u32, 44> SomeCode{
     // Insert a random code here...
 };
 
+static u8* pSimulatedHeap;
+
+void eachFrameCaller() {
+  // Some codes change their own instructions...
+  for (int i = 0; i < 1024; i += 32)
+    kuribo::flushAddr(pSimulatedHeap + i);
+  ((void (*)(void))pSimulatedHeap)();
+}
+
 void GeckoJIT_RunTests() {
-  auto *pSimulatedHeap =
+  pSimulatedHeap =
       (u8 *)kuribo::mem::Alloc(1024, kuribo::mem::GetDefaultHeap(), 8);
 #ifndef _WIN32
   for (int i = 0; i < 1024; i += 1)
@@ -60,10 +69,8 @@ void GeckoJIT_RunTests() {
   }
   fwrite(&pSimulatedHeap[0], 1, 1024, pFile);
   fclose(pFile);
-#else
-  {
-    KURIBO_SCOPED_LOG("Calling compiled function");
-    // ((void (*)(void))pSimulatedHeap)();
-  }
 #endif
+  u32* viHookBlr = FindHookInMemory(gecko_jit::GeckoHookType::VI_WII);
+  KURIBO_LOG("Found VI Hook begin at... %p\n", viHookBlr);
+  kuribo::directBranchEx(viHookBlr, (void*)(u32)&eachFrameCaller, false);
 }

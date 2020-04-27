@@ -38,4 +38,10 @@ private:
   FrameAllocator mCodeAllocator;
 };
 
+enum class GeckoHookType {
+  VI_GC,
+  VI_WII
+};
+u32* FindHookInMemory(GeckoHookType type);
+
 } // namespace gecko_jit

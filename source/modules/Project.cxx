@@ -104,28 +104,4 @@ bool ModuleInstance::moduleCall(kuribo_module_call t, kuribo_module_context* arg
 	pModule->prologue(t, arg);
 	return true;
 }
-
-namespace {
-	inline u8* CodeHandlerDest = reinterpret_cast<u8*>(0x80001800);
-	inline u32 CodeHandlerHeaderOfs = 0x30;
-}
-
-bool ProjectManager::loadCodeHandler(const eastl::string_view path) {
-	KURIBO_SCOPED_LOG("Loading code handler..");
-	io::dvd::Handle hnd(path.data());
-
-	if (!hnd.opened()) return false;
-
-	hnd.read(CodeHandlerDest, hnd.getRoundedSize(), 0);
-
-	gecko::CodeHeader& hdr = *reinterpret_cast<gecko::CodeHeader*>(CodeHandlerDest + CodeHandlerHeaderOfs);
-	hdr.last = nullptr;
-	hdr.next = nullptr;
-	hdr.IsActive = 1;
-	hdr.ID = 0;
-	hdr.ErrorType = 0;
-
-	return true;
-}
-
 }

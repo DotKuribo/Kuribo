@@ -5,18 +5,18 @@
 
 namespace kuribo::gecko {
 
-class CodePrinter final : public kuribo::gecko::ICodeReceiver {
+class CodePrinter final {
 public:
-    void onCodeBegin(eastl::string_view title) override {
+    void onCodeBegin(eastl::string_view title) {
         eastl::string to_print(title.begin(), title.size());
         KURIBO_LOG("\nCode: %s\n=====\n", to_print.c_str());
     }
-    void onCodeChunk(u32 chunk) override {
+    void onCodeChunk(u32 chunk) {
         KURIBO_LOG_FUNCTION("%08x%c", chunk, odd ? ' ' : '\n');
         odd = !odd;
     }
-    void onParseFail() override {}
-    void onEnd() override {}
+    void onParseFail() {}
+    void onEnd() {}
 private:
     bool odd = true;
 };

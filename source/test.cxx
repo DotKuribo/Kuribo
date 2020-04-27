@@ -10,7 +10,6 @@
 #include "io/io.hxx"
 
 #include "modules/gecko/CodePrinter.hxx"
-#include "modules/gecko/CodeManager.hxx"
 
 #include "system/system.hxx"
 #include <core/patch.hxx>
@@ -32,48 +31,12 @@ KURIBO_SCOPED_LOG("Code Parsing Test");
         const eastl::string_view code_example = "$Proc Mon PAL\n042153B8 4E800020\n$OtherCode\n04238F14 4E800020\n04009600 48239100";
 
         // Construct a lexical parser.
-        kuribo::gecko::CodeParser parser{ code_example };
+        kuribo::gecko::CodeParser<kuribo::gecko::CodePrinter> parser{ code_example };
 
         // Attach a temporary CodePrinter to receive parsing actions.
         kuribo::gecko::CodePrinter printer;
+
         parser.parse(printer);
-    }
-    void CodeParserFromDisc() {
-        KURIBO_SCOPED_LOG("Code Parsing From Disc Test");
-
-        auto str = kuribo::io::dvd::loadFileString("kuribo_codes.txt");
-
-        // Construct a lexical parser.
-        kuribo::gecko::CodeParser parser{ eastl::string_view { str } };
-
-        kuribo::gecko::CodeManager mgr;
-
-        // Attach a temporary CodePrinter to receive parsing actions.
-        kuribo::gecko::CodeManagerDelegate printer{ mgr, "kuribo_codes.txt" };
-        parser.parse(printer);
-
-        int i = 0;
-        for (const auto& block : mgr.blocks) {
-            auto& header = block.getCodeBlock().header;
-            KURIBO_LOG("Block #%i: %p\n", i++, &header);
-            KURIBO_LOG("- last:   %p\n", header.last);
-            KURIBO_LOG("- next:   %p\n", header.next);
-            KURIBO_LOG("- active: %s\n", header.IsActive ? "true" : "false");
-            KURIBO_LOG("- id:     %u\n", static_cast<u16>(header.ID));
-            KURIBO_LOG("- err:    %u\n", static_cast<u16>(header.ErrorType));
-            // KURIBO_LOG("- file:   %s\n", block->debug.file.c_str());
-            KURIBO_LOG("- name:   %s\n", block.getCodeBlock().debug.name.c_str());
-            // KURIBO_LOG("- line:   %u\n", block->debug.file_line);
-            bool odd = true;
-            for (const auto c : block.getData()) {
-                KURIBO_LOG_FUNCTION("   %c %08x%c", odd ? '|' : ' ', c, odd ? ' ' : '\n');
-                if (c == 0xFE000000) {
-                    KURIBO_LOG_FUNCTION("\n");
-                    break;
-                }
-                odd = !odd;
-            }
-        }
     }
 } // namespace tests
 

@@ -21,7 +21,7 @@ void DefaultAbortHandler(const char* reason);
 
 class System final
 {
-	friend class DeferredSingleton<System>;
+	friend struct DeferredSingleton<System>;
 public:
 	static DeferredSingleton<System> sInstance;
     static System& getSystem() { KURIBO_ASSERT(sInstance.isStaticInstanceInitialized()); return sInstance.getInstance(); }
