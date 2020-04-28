@@ -352,6 +352,18 @@ bool CompileCodeList(JITEngine& engine, const u32* list, size_t size) {
                        value_increment, ((writeInfo >> 31) & 3));
   };
 
+  auto Handle20 = [&](u32* address, u32 value) {
+    KURIBO_LOG("<IF> address = %x, value = %x\n", (u32)address, (u32)value);
+    //if (*address == value) {
+    //}
+  };
+
+  auto Handle28 = [&](u16* address, u16 mask, u16 value) {
+    KURIBO_LOG("<IF> address = %x, mask = %x, value = %x\n", (u32)address, (u32)mask, (u32)value);
+    //if ((*address & mask) == value) {
+    //}
+  };
+
   auto HandleC0 = [&](u32 funcpointer, u32 size) {
     compileExecuteASM(state, (u8 *)funcpointer, size);
   };
@@ -362,6 +374,11 @@ bool CompileCodeList(JITEngine& engine, const u32* list, size_t size) {
 
   auto HandleC6 = [&](u32 address, u32 target) {
     compileBranch((u32 *)address, (const char *)target, false);
+  };
+
+  auto HandleE0 = [&](u16 bp, u16 po) {
+    KURIBO_LOG("<ENDIF> Base Address = %x0000, Pointer Address = %x0000\n", bp, po);
+    //However you handler the if blocks, this ends the current one
   };
 
   u32 i = 0;
@@ -387,8 +404,12 @@ bool CompileCodeList(JITEngine& engine, const u32* list, size_t size) {
       i += 4;
       break;
     case 0x20:
+      Handle20((u32*)bp + (list[i] & 0x01ffffff), list[i + 1]);
+      i += 2;
       break;
     case 0x28:
+      Handle28((u16*)bp + (list[i] & 0x01ffffff), (u16)((list[i + 1] >> 16) & 0xffff), (u16)(list[i + 1] & 0xffff));
+      i += 2;
       break;
     case 0xC0:
       HandleC0((u32)&list[i + 2], list[i + 1]);
@@ -401,6 +422,11 @@ bool CompileCodeList(JITEngine& engine, const u32* list, size_t size) {
     case 0xC6:
       HandleC6(bp + (list[i] & 0x01ffffff), list[i + 1]);
       i += 2;
+      break;
+    case 0xE0:
+      HandleE0((u16)((list[i + 1] >> 16) & 0xffff), (u16)(list[i + 1] & 0xffff));
+      i += 2;
+      break;
     default:
       // Unknown code, exit early
       return false;
