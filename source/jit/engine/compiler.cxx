@@ -1,8 +1,10 @@
 #include "compiler.hpp"
 #include "engine.hpp"
-#include <EASTL/array.h>
-#include <bitset>
 #include <core/patch.hxx>
+
+#include <EASTL/array.h>
+#include <EASTL/deque.h>
+#include <bitset>
 
 namespace gecko_jit {
 
@@ -22,6 +24,27 @@ union D_Form {
   };
   u32 hex;
 };
+struct AND {
+#ifdef _WIN32
+  u32 Compare0 : 1;
+  u32 Reserved : 10; // must be 28
+  u32 OpB : 5;
+  u32 Dest : 5;
+  u32 OpA : 5;
+  u32 InstructionID : 6;
+#else
+  u32 InstructionID : 6;
+  u32 OpA : 5;
+  u32 Dest : 5;
+  u32 OpB : 5;
+  u32 Reserved : 10; // must be 28
+  u32 Compare0 : 1;
+#endif
+};
+
+static_assert(sizeof(AND) == sizeof(u32),
+              "Invalidly sized instruction structure");
+
 enum {
   PPC_OP_ADDI = 14,
   PPC_OP_ADDIS = 15,
@@ -39,7 +62,8 @@ enum {
   PPC_OP_STHU = 45,
   PPC_OP_STH = 44,
   PPC_OP_STW = 36,
-  PPC_OP_SYNC = 31
+  // PPC_OP_SYNC = 31
+  PPC_OP_AND = 31
 };
 
 struct LinearExecutionState {
@@ -64,6 +88,7 @@ struct LinearExecutionState {
     if (reg >= 14 && reg <= 31)
       register_values_known[reg - 14] = 0;
   }
+  void flush() { register_values_known = {}; }
 
   u8 *allocInstruction(u32 size) {
     return mEngine.alloc(JITEngine::CodeHeap::ExecuteEveryFrame, size);
@@ -129,12 +154,38 @@ void compileImmediateLoad(LinearExecutionState &state, u8 reg, u32 value) {
     lis->Source = 0;
     lis->SIMM = (value >> 16) & 0xffff;
 
-    D_Form *ori = state.allocInstruction<D_Form>();
-    ori->InstructionID = PPC_OP_ORI;
-    ori->Destination = reg;
-    ori->Source = reg;
-    ori->SIMM = value & 0xffff;
+    if (value & 0xffff) {
+      D_Form *ori = state.allocInstruction<D_Form>();
+      ori->InstructionID = PPC_OP_ORI;
+      ori->Destination = reg;
+      ori->Source = reg;
+      ori->SIMM = value & 0xffff;
+    }
   }
+}
+
+void compileMemoryLoad(LinearExecutionState &state, u8 reg, u32 addr) {
+  // TODO -- we can optimize this
+  compileImmediateLoad(state, reg, addr);
+  D_Form *lwz = state.allocInstruction<D_Form>();
+  lwz->InstructionID = PPC_OP_LWZ;
+  lwz->Destination = 14;
+  state.forget(14);
+  lwz->Source = 14;
+  lwz->SIMM = 0;
+}
+
+void compileMask(LinearExecutionState &state, u8 reg, u8 regMask, u32 mask) {
+  // TODO -- use rlwinm when possible
+  compileImmediateLoad(state, regMask, mask);
+  AND *_and = state.allocInstruction<AND>(); // and reg, reg, regMask
+  _and->InstructionID = PPC_OP_AND;
+  _and->OpA = reg;
+  _and->OpB = regMask;
+  _and->Dest = reg;
+  state.forget(reg);
+  _and->Reserved = 28;
+  _and->Compare0 = 0;
 }
 
 //! @brief Generates load/store instruction packages
@@ -174,7 +225,7 @@ void compileStore(LinearExecutionState &engine, u8 sourceReg, u8 destReg,
 }
 
 void compileBranch(u32 *address, const char *target, bool link = true) {
-  kuribo::directBranchEx(address, (void*)target, link);
+  kuribo::directBranchEx(address, (void *)target, link);
 }
 
 void compileBranch(LinearExecutionState &state, u32 target, bool link = true) {
@@ -270,7 +321,8 @@ void compileExecuteASM(LinearExecutionState &engine, u8 *funcPointer,
                        u32 size) {
   u8 *data = engine.allocData(size * 8);
   memcpy(data, (u8 *)funcPointer, (size * 8));
-  //KURIBO_LOG("data = 0x%X, funcPointer = 0x%X, size = 0x%X funcPointer data = %x", data,funcPointer,(size*8));
+  // KURIBO_LOG("data = 0x%X, funcPointer = 0x%X, size = 0x%X funcPointer data =
+  // %x", data,funcPointer,(size*8));
   compileImmediateLoad(engine, 15,
                        (u32)data); // r15 = start of code, for compatibility
   compileBranch(engine, (u32)data, true);
@@ -280,9 +332,10 @@ void compileInjectASM(LinearExecutionState &engine, u8 *funcPointer,
                       u32 *address, u32 size) {
   u8 *data = engine.allocData(size * 8);
   memcpy(data, (u8 *)funcPointer, (size * 8));
-  compileBranch((u32*)address, (const char*)data, false);
-  compileBranch((u32*)(data + (size * 8) - 4), (const char*)(address + 1),
-                false); //calculates offsets to branch from end of code to address + 4
+  compileBranch((u32 *)address, (const char *)data, false);
+  compileBranch(
+      (u32 *)(data + (size * 8) - 4), (const char *)(address + 1),
+      false); // calculates offsets to branch from end of code to address + 4
 }
 
 // dcbf, sync, icbi, sync, isync
@@ -352,16 +405,31 @@ bool CompileCodeList(JITEngine& engine, const u32* list, size_t size) {
                        value_increment, ((writeInfo >> 31) & 3));
   };
 
-  auto Handle20 = [&](u32* address, u32 value) {
-    KURIBO_LOG("<IF> address = %x, value = %x\n", (u32)address, (u32)value);
-    //if (*address == value) {
-    //}
+  eastl::deque<u32 *> openIfStatements;
+
+  // if (*address == value)
+  auto Handle20 = [&](u32 *address, u32 value) {
+    // KURIBO_LOG("<IF> address = %x, value = %x\n", (u32)address, (u32)value);
+
+    compileMemoryLoad(state, 14, value);
+    compileImmediateLoad(state, 15, (u32)address);
+    compileImmediateLoad(state, 15, value);
+
+    *state.allocInstruction<u32>() = 0x7C0E7840; // cmplw r14, r15
+
+    openIfStatements.push_back(state.allocInstruction<u32>());
   };
 
-  auto Handle28 = [&](u16* address, u16 mask, u16 value) {
-    KURIBO_LOG("<IF> address = %x, mask = %x, value = %x\n", (u32)address, (u32)mask, (u32)value);
-    //if ((*address & mask) == value) {
-    //}
+  // if ((*address & mask) == value)
+  auto Handle28 = [&](u16 *address, u16 mask, u16 value) {
+    // KURIBO_LOG("<IF> address = %x, mask = %x, value = %x\n", (u32)address,
+    //            (u32)mask, (u32)value);
+
+    compileMemoryLoad(state, 14, (u32)address);
+    compileMask(state, 14, 15, (u16)~mask); // stencil
+    compileImmediateLoad(state, 15, value);
+    *state.allocInstruction<u32>() = 0x7C0E7840; // cmplw r14, r15
+    openIfStatements.push_back(state.allocInstruction<u32>());
   };
 
   auto HandleC0 = [&](u32 funcpointer, u32 size) {
@@ -377,8 +445,21 @@ bool CompileCodeList(JITEngine& engine, const u32* list, size_t size) {
   };
 
   auto HandleE0 = [&](u16 bp, u16 po) {
-    KURIBO_LOG("<ENDIF> Base Address = %x0000, Pointer Address = %x0000\n", bp, po);
-    //However you handler the if blocks, this ends the current one
+    // KURIBO_LOG("<ENDIF> Base Address = %x0000, Pointer Address = %x0000\n",
+    //            bp, po);
+
+    u32 *paired = openIfStatements.back();
+    openIfStatements.pop_back();
+
+    // compile a bne to here
+    u32 *addr = state.allocInstruction<u32>(); // Hack generate a nop here to
+                                               // get the address..
+    *addr = 0x60000000;
+
+    *paired = 0x40820000 | ((((char *)addr - (char *)paired) & ~3) & 0xffff);
+
+    // we can't assume register values
+    state.flush();
   };
 
   u32 i = 0;
@@ -404,11 +485,13 @@ bool CompileCodeList(JITEngine& engine, const u32* list, size_t size) {
       i += 4;
       break;
     case 0x20:
-      Handle20((u32*)bp + (list[i] & 0x01ffffff), list[i + 1]);
+      Handle20((u32 *)bp + (list[i] & 0x01ffffff), list[i + 1]);
       i += 2;
       break;
     case 0x28:
-      Handle28((u16*)bp + (list[i] & 0x01ffffff), (u16)((list[i + 1] >> 16) & 0xffff), (u16)(list[i + 1] & 0xffff));
+      Handle28((u16 *)bp + (list[i] & 0x01ffffff),
+               (u16)((list[i + 1] >> 16) & 0xffff),
+               (u16)(list[i + 1] & 0xffff));
       i += 2;
       break;
     case 0xC0:
@@ -424,7 +507,8 @@ bool CompileCodeList(JITEngine& engine, const u32* list, size_t size) {
       i += 2;
       break;
     case 0xE0:
-      HandleE0((u16)((list[i + 1] >> 16) & 0xffff), (u16)(list[i + 1] & 0xffff));
+      HandleE0((u16)((list[i + 1] >> 16) & 0xffff),
+               (u16)(list[i + 1] & 0xffff));
       i += 2;
       break;
     default:
