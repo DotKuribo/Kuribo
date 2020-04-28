@@ -42,6 +42,24 @@ struct AND {
 #endif
 };
 
+struct Cache {
+#ifdef _WIN32
+  u32 Reserved3 : 1;
+  u32 AltID : 10;
+  u32 RegB : 5;
+  u32 RegA : 5;
+  u32 Reserved1 : 5;
+  u32 InstructionID : 6;
+#else
+  u32 InstructionID : 6;
+  u32 Reserved1 : 5;
+  u32 RegA : 5;
+  u32 RegB : 5;
+  u32 AltID : 10;
+  u32 Reserved3 : 1;
+#endif
+};
+
 static_assert(sizeof(AND) == sizeof(u32),
               "Invalidly sized instruction structure");
 
@@ -51,9 +69,12 @@ enum {
   PPC_OP_BC = 16,
   PPC_OP_B = 18,
   PPC_OP_B_MISC = 19,
+  PPC_OP_DCBF = 31,
   PPC_OP_DCBST = 31,
   PPC_OP_ICBI = 31,
   PPC_OP_ISYNC = 19,
+  PPC_OP_LBZ = 34,
+  PPC_OP_LHZ = 40,
   PPC_OP_LWZ = 32,
   PPC_OP_LFS = 48,
   PPC_OP_ORI = 24,
@@ -62,7 +83,7 @@ enum {
   PPC_OP_STHU = 45,
   PPC_OP_STH = 44,
   PPC_OP_STW = 36,
-  // PPC_OP_SYNC = 31
+  PPC_OP_SYNC = 31,
   PPC_OP_AND = 31
 };
 
@@ -164,15 +185,28 @@ void compileImmediateLoad(LinearExecutionState &state, u8 reg, u32 value) {
   }
 }
 
-void compileMemoryLoad(LinearExecutionState &state, u8 reg, u32 addr) {
-  // TODO -- we can optimize this
-  compileImmediateLoad(state, reg, addr);
+void compileMemoryLoad(LinearExecutionState &state, u8 reg, u32 addr, u8 size) {
+  if ((addr & 0xffff) > 0x7FFF) {
+    addr += 0x10000;
+  }
+  compileImmediateLoad(state, reg, (addr & 0xffff0000));
   D_Form *lwz = state.allocInstruction<D_Form>();
-  lwz->InstructionID = PPC_OP_LWZ;
+  switch (size) {
+  case 1:
+    lwz->InstructionID = PPC_OP_LBZ;
+    break;
+  case 2:
+    lwz->InstructionID = PPC_OP_LHZ;
+    break;
+  case 4:
+  default:
+    lwz->InstructionID = PPC_OP_LWZ;
+    break;
+  }
   lwz->Destination = 14;
   state.forget(14);
   lwz->Source = 14;
-  lwz->SIMM = 0;
+  lwz->SIMM = (addr & 0xffff);
 }
 
 void compileMask(LinearExecutionState &state, u8 reg, u8 regMask, u32 mask) {
@@ -222,6 +256,15 @@ void compileStore(LinearExecutionState &engine, u8 sourceReg, u8 destReg,
   stw->Destination = destReg;
   stw->Source = sourceReg;
   stw->SIMM = 0;
+
+  Cache* icbi = engine.allocInstruction<Cache>();
+
+  icbi->InstructionID = PPC_OP_ICBI;
+  icbi->RegA = 16;
+  icbi->RegB = sourceReg;
+  icbi->Reserved1 = 0;
+  icbi->AltID = 982;
+  icbi->Reserved3 = 0;
 }
 
 void compileBranch(u32 *address, const char *target, bool link = true) {
@@ -348,8 +391,9 @@ void compileCacheClear(LinearExecutionState &state, u8 reg) {
 //! stw r0, 0x8 (r1)
 //! stw r14, 0xC (r1)
 //! stw r15, 0x10 (r1)
-static u32 __prologue[5]{0x9421FFE0, 0x7C0802A6, 0x90010008, 0x91C1000C,
-                         0x91E10010};
+//! li r16, 0
+static u32 __prologue[6]{0x9421FFE0, 0x7C0802A6, 0x90010008,
+                         0x91C1000C, 0x91E10010, 0x3A000000};
 //! lwz r15, 0x10 (r1)
 //! lwz r14, 0xC (r1)
 //! lwz r0, 0x8 (r1)
@@ -361,7 +405,7 @@ static u32 __epilogue[6]{0x81E10010, 0x81C1000C, 0x80010008,
 
 bool BeginCodeList(JITEngine &engine) {
   u32 *block =
-      (u32 *)engine.alloc(JITEngine::CodeHeap::ExecuteEveryFrame, 5 * 4);
+      (u32 *)engine.alloc(JITEngine::CodeHeap::ExecuteEveryFrame, 6 * 4);
   memcpy(block, &__prologue[0], 6 * 4);
   return true;
 }
@@ -411,7 +455,7 @@ bool CompileCodeList(JITEngine& engine, const u32* list, size_t size) {
   auto Handle20 = [&](u32 *address, u32 value) {
     // KURIBO_LOG("<IF> address = %x, value = %x\n", (u32)address, (u32)value);
 
-    compileMemoryLoad(state, 14, value);
+    compileMemoryLoad(state, 14, value, sizeof(u32));
     compileImmediateLoad(state, 15, (u32)address);
     compileImmediateLoad(state, 15, value);
 
@@ -422,10 +466,10 @@ bool CompileCodeList(JITEngine& engine, const u32* list, size_t size) {
 
   // if ((*address & mask) == value)
   auto Handle28 = [&](u16 *address, u16 mask, u16 value) {
-    // KURIBO_LOG("<IF> address = %x, mask = %x, value = %x\n", (u32)address,
-    //            (u32)mask, (u32)value);
+    //KURIBO_LOG("<IF> address = %x, mask = %x, value = %x\n", (u32)address,
+    //           (u32)mask, (u32)value);
 
-    compileMemoryLoad(state, 14, (u32)address);
+    compileMemoryLoad(state, 14, (u32)address, sizeof(u16));
     compileMask(state, 14, 15, (u16)~mask); // stencil
     compileImmediateLoad(state, 15, value);
     *state.allocInstruction<u32>() = 0x7C0E7840; // cmplw r14, r15
@@ -485,11 +529,11 @@ bool CompileCodeList(JITEngine& engine, const u32* list, size_t size) {
       i += 4;
       break;
     case 0x20:
-      Handle20((u32 *)bp + (list[i] & 0x01ffffff), list[i + 1]);
+      Handle20((u32 *)(bp + (list[i] & 0x01ffffff)), list[i + 1]);
       i += 2;
       break;
     case 0x28:
-      Handle28((u16 *)bp + (list[i] & 0x01ffffff),
+      Handle28((u16 *)(bp + (list[i] & 0x01ffffff)),
                (u16)((list[i + 1] >> 16) & 0xffff),
                (u16)(list[i + 1] & 0xffff));
       i += 2;
