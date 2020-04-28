@@ -203,9 +203,9 @@ void compileMemoryLoad(LinearExecutionState &state, u8 reg, u32 addr, u8 size) {
     lwz->InstructionID = PPC_OP_LWZ;
     break;
   }
-  lwz->Destination = 14;
-  state.forget(14);
-  lwz->Source = 14;
+  lwz->Destination = reg;
+  state.forget(reg);
+  lwz->Source = reg;
   lwz->SIMM = (addr & 0xffff);
 }
 
