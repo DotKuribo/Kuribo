@@ -60,15 +60,59 @@ struct Cache {
 #endif
 };
 
+struct CMPW {
+#ifdef _WIN32
+  u32 Reserved2 : 1;
+  u32 AltID : 10;
+  u32 RegB : 5;
+  u32 RegA : 5;
+  u32 ReservedL : 1;
+  u32 Reserved1 : 1;
+  u32 ConditionField : 3;
+  u32 InstructionID : 6;
+#else
+  u32 InstructionID : 6;
+  u32 ConditionField : 3;
+  u32 Reserved1 : 1;
+  u32 ReservedL : 1;
+  u32 RegA : 5;
+  u32 RegB : 5;
+  u32 AltID : 10;
+  u32 Reserved2 : 1;
+#endif
+};
+
+struct CMPWI {
+#ifdef _WIN32
+  u32 SIMM : 16;
+  u32 RegA : 5;
+  u32 ReservedL : 1;
+  u32 Reserved1 : 1;
+  u32 ConditionField : 3;
+  u32 InstructionID : 6;
+#else
+  u32 InstructionID : 6;
+  u32 ConditionField : 3;
+  u32 Reserved1 : 1;
+  u32 ReservedL : 1;
+  u32 RegA : 5;
+  u32 SIMM : 16;
+#endif
+};
+
 static_assert(sizeof(AND) == sizeof(u32),
               "Invalidly sized instruction structure");
 
 enum {
   PPC_OP_ADDI = 14,
   PPC_OP_ADDIS = 15,
+  PPC_OP_AND = 31,
+  PPC_OP_ANDI = 28,
   PPC_OP_BC = 16,
   PPC_OP_B = 18,
   PPC_OP_B_MISC = 19,
+  PPC_OP_CMPW = 31,
+  PPC_OP_CMPWI = 11,
   PPC_OP_DCBF = 31,
   PPC_OP_DCBST = 31,
   PPC_OP_ICBI = 31,
@@ -83,8 +127,7 @@ enum {
   PPC_OP_STHU = 45,
   PPC_OP_STH = 44,
   PPC_OP_STW = 36,
-  PPC_OP_SYNC = 31,
-  PPC_OP_AND = 31
+  PPC_OP_SYNC = 31
 };
 
 struct LinearExecutionState {
@@ -219,8 +262,43 @@ void compileMemoryLoad(LinearExecutionState &state, u8 reg, u32 addr, u8 size) {
   lwz->SIMM = (addr & 0xffff);
 }
 
+void compileCompare(LinearExecutionState& state, u8 regA, u8 regB, u8 crf, u32 value) {
+  if (value <= 0x7fff) {
+    CMPWI* cmpwi = state.allocInstruction<CMPWI>(); // cmpwi r14, value
+
+    cmpwi->InstructionID = PPC_OP_CMPWI;
+    cmpwi->ConditionField = crf;
+    cmpwi->Reserved1 = 0;
+    cmpwi->ReservedL = 0;
+    cmpwi->RegA = regA;
+    cmpwi->SIMM = value;
+
+  } else {
+    compileImmediateLoad(state, 15, value);
+
+    CMPW* cmpw = state.allocInstruction<CMPW>(); // cmplw r14, r15
+
+    cmpw->InstructionID = PPC_OP_CMPW;
+    cmpw->ConditionField = crf;
+    cmpw->Reserved1 = 0;
+    cmpw->ReservedL = 0;
+    cmpw->RegA = regA;
+    cmpw->RegB = regB;
+    cmpw->Reserved2 = 0;
+  }
+}
+
 void compileMask(LinearExecutionState &state, u8 reg, u8 regMask, u32 mask) {
   // TODO -- use rlwinm when possible
+
+  if (mask <= 0x7FFF) {
+    D_Form* andi = state.allocInstruction<D_Form>();
+    andi->InstructionID = PPC_OP_ANDI;
+    andi->Destination = reg;
+    andi->Source = reg;
+    andi->SIMM = mask & 0xffff;
+    return;
+  }
   compileImmediateLoad(state, regMask, mask);
   AND *_and = state.allocInstruction<AND>(); // and reg, reg, regMask
   _and->InstructionID = PPC_OP_AND;
@@ -465,11 +543,8 @@ bool CompileCodeList(JITEngine& engine, const u32* list, size_t size) {
   auto Handle20 = [&](u32 *address, u32 value) {
     // KURIBO_LOG("<IF> address = %x, value = %x\n", (u32)address, (u32)value);
 
-    compileMemoryLoad(state, 14, value, sizeof(u32));
-    compileImmediateLoad(state, 15, (u32)address);
-    compileImmediateLoad(state, 15, value);
-
-    *state.allocInstruction<u32>() = 0x7C0E7840; // cmplw r14, r15
+    compileMemoryLoad(state, 14, (u32)address, sizeof(u32));
+    compileCompare(state, 14, 15, 0, value);
 
     openIfStatements.push_back(state.allocInstruction<u32>());
   };
@@ -481,8 +556,8 @@ bool CompileCodeList(JITEngine& engine, const u32* list, size_t size) {
 
     compileMemoryLoad(state, 14, (u32)address, sizeof(u16));
     compileMask(state, 14, 15, (u16)~mask); // stencil
-    compileImmediateLoad(state, 15, value);
-    *state.allocInstruction<u32>() = 0x7C0E7840; // cmplw r14, r15
+    compileCompare(state, 14, 15, 0, value);
+
     openIfStatements.push_back(state.allocInstruction<u32>());
   };
 
