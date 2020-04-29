@@ -92,12 +92,12 @@ struct LinearExecutionState {
   // Let r14, r15, r16 they could be whatever
 
   bool isKnown(u8 reg) {
-    return reg >= 14 && reg <= 31 && register_values_known[reg + 14] != 0;
+    return reg >= 14 && reg <= 31 && register_values_known[reg - 14] != 0;
   }
   void remember(u8 reg, u32 value) {
     if (reg < 14 || reg > 31)
       return;
-    register_values_known[reg - 14] = value;
+    register_values_known[reg - 14] = 1;
     register_values[reg - 14] = value;
   }
   u32 recall(u8 reg) {
@@ -152,13 +152,27 @@ private:
 void compileImmediateLoad(LinearExecutionState &state, u8 reg, u32 value) {
   if (state.isKnown(reg)) {
     const u32 prior_value = state.recall(reg);
+    KURIBO_LOG("VALUE %x - PRIOR %x = %x\n", value, prior_value, value - prior_value);
     if (prior_value == value) {
       // The value is already set. We don't need to do anything.
       return;
-    } else {
+    }
+    else if ((static_cast<s32>(value - prior_value) < 0x7fff) && (static_cast<s32>(value - prior_value) > -0x7fff)) {
+      
+      state.remember(reg, value);
+
+      D_Form* addi = state.allocInstruction<D_Form>();
+      addi->InstructionID = PPC_OP_ADDI;
+      addi->Destination = reg;
+      addi->Source = reg;
+      addi->SIMM = (value - prior_value) & 0xffff;
+
+      return;
+    }
+    /*} else {
       // TODO
       // If only the low bit differs, use an addi to offset them!
-    }
+    }*/
   }
   state.remember(reg, value);
 

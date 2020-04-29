@@ -11,7 +11,11 @@
 #include <core/patch.hxx>
 
 
-const static std::array<u32, 122> SomeCode{
+const static std::array<u32, 130> SomeCode{
+  0x04002F10, 0xDEADBEEF,
+  0x04002F18, 0xCAFEBABE,
+  0x04002E00, 0xDEADCAFE,
+  0x040004c0, 0xDEADDEAD,
   0xC200960C, 0x00000006,
   0x81950000, 0x7EA3AB78,
   0x818C0018, 0x7D8903A6,
