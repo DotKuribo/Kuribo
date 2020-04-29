@@ -152,7 +152,7 @@ private:
 void compileImmediateLoad(LinearExecutionState &state, u8 reg, u32 value) {
   if (state.isKnown(reg)) {
     const u32 prior_value = state.recall(reg);
-    KURIBO_LOG("VALUE %x - PRIOR %x = %x\n", value, prior_value, value - prior_value);
+    //KURIBO_LOG("VALUE %x - PRIOR %x = %x\n", value, prior_value, value - prior_value);
     if (prior_value == value) {
       // The value is already set. We don't need to do anything.
       return;
@@ -169,10 +169,6 @@ void compileImmediateLoad(LinearExecutionState &state, u8 reg, u32 value) {
 
       return;
     }
-    /*} else {
-      // TODO
-      // If only the low bit differs, use an addi to offset them!
-    }*/
   }
   state.remember(reg, value);
 
