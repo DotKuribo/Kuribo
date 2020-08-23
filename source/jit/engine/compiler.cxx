@@ -534,7 +534,7 @@ bool CompileCodeList(JITEngine& engine, const u32* list, size_t size) {
                       u32 value_increment) {
     compileSerialWrite(state, 14, 15, address, value,
                        ((writeInfo >> 16) & 0xFFF), (writeInfo & 0xFFFF),
-                       value_increment, ((writeInfo >> 31) & 3));
+                       value_increment, ((writeInfo >> 28) & 3));
   };
 
   eastl::deque<u32 *> openIfStatements;
