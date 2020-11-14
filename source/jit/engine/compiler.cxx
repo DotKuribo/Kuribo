@@ -122,11 +122,18 @@ enum {
   PPC_OP_LWZ = 32,
   PPC_OP_LFS = 48,
   PPC_OP_ORI = 24,
+
   PPC_OP_STB = 38,
-  PPC_OP_STFDU = 55,
-  PPC_OP_STHU = 45,
+  PPC_OP_STBU = 39,
+
   PPC_OP_STH = 44,
+  PPC_OP_STHU = 45,
+
   PPC_OP_STW = 36,
+  PPC_OP_STWU = 37,
+
+  PPC_OP_STFDU = 55,
+
   PPC_OP_SYNC = 31
 };
 
@@ -313,8 +320,8 @@ void compileMask(LinearExecutionState &state, u8 reg, u8 regMask, u32 mask) {
 //! @brief Generates load/store instruction packages
 //!
 //! @param[in] engine    The JIT engine
-//! @param[in] sourceReg Register to set address with
-//! @param[in] destReg   The register to load/store with
+//! @param[in] addrReg   Register to set address with
+//! @param[in] valReg    The register to load/store with
 //! @param[in] address   Address to load/store from
 //! @param[in] value     Value to store at address
 //! @param[in] size      Size of the value to store,
@@ -326,30 +333,56 @@ void compileMask(LinearExecutionState &state, u8 reg, u8 regMask, u32 mask) {
 //! to the given address using the
 //! designated registers
 //!
-void compileStore(LinearExecutionState &engine, u8 sourceReg, u8 destReg,
+void compileStore(LinearExecutionState &engine, u8 addrReg, u8 valReg,
                   u32 address, u32 value, u8 size) {
 
-  compileImmediateLoad(engine, sourceReg, address);
-  compileImmediateLoad(engine, destReg, value); // this creates our value
+  compileImmediateLoad(engine, valReg, value); // this creates our value
+  
+  bool need_address_load = true;
 
-  D_Form *stw = engine.allocInstruction<D_Form>();
-
-  if (size == sizeof(u8)) {
-    stw->InstructionID = PPC_OP_STB;
-  } else if (size == sizeof(u16)) {
-    stw->InstructionID = PPC_OP_STH;
-  } else {
-    stw->InstructionID = PPC_OP_STW;
+  // writeback optimization
+  if (engine.isKnown(addrReg)) {
+    const s32 delta = address - engine.recall(addrReg);
+    if (const s16 truncated = static_cast<s16>(delta); truncated == delta) {
+      D_Form *stwu = engine.allocInstruction<D_Form>();
+      if (size == sizeof(u8)) {
+        stwu->InstructionID = PPC_OP_STBU;
+      } else if (size == sizeof(u16)) {
+        stwu->InstructionID = PPC_OP_STHU;
+      } else {
+        stwu->InstructionID = PPC_OP_STWU;
+      }
+      stwu->Destination = valReg;
+      stwu->Source = addrReg;
+      stwu->SIMM = truncated;
+      engine.remember(addrReg, address);
+      need_address_load = false;
+    }
   }
-  stw->Destination = destReg;
-  stw->Source = sourceReg;
-  stw->SIMM = 0;
+
+  if (need_address_load) {
+    compileImmediateLoad(engine, addrReg, address);
+    D_Form* stw = engine.allocInstruction<D_Form>();
+
+    if (size == sizeof(u8)) {
+      stw->InstructionID = PPC_OP_STB;
+    }
+    else if (size == sizeof(u16)) {
+      stw->InstructionID = PPC_OP_STH;
+    }
+    else {
+      stw->InstructionID = PPC_OP_STW;
+    }
+    stw->Destination = valReg;
+    stw->Source = addrReg;
+    stw->SIMM = 0;
+  }
 
   Cache* icbi = engine.allocInstruction<Cache>();
 
   icbi->InstructionID = PPC_OP_ICBI;
-  icbi->RegA = 16;
-  icbi->RegB = sourceReg;
+  icbi->RegA = 0;
+  icbi->RegB = addrReg;
   icbi->Reserved1 = 0;
   icbi->AltID = 982;
   icbi->Reserved3 = 0;
@@ -491,9 +524,8 @@ void compileCacheClear(LinearExecutionState &state, u8 reg) {
 //! stw r0, 0x8 (r1)
 //! stw r14, 0xC (r1)
 //! stw r15, 0x10 (r1)
-//! li r16, 0
-static u32 __prologue[6]{0x9421FFE0, 0x7C0802A6, 0x90010008,
-                         0x91C1000C, 0x91E10010, 0x3A000000};
+static u32 __prologue[5]{0x9421FFE0, 0x7C0802A6, 0x90010008,
+                         0x91C1000C, 0x91E10010};
 //! lwz r15, 0x10 (r1)
 //! lwz r14, 0xC (r1)
 //! lwz r0, 0x8 (r1)
