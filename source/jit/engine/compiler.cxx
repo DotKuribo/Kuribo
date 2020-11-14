@@ -377,7 +377,7 @@ void compileBranch(LinearExecutionState &state, u32 target, bool link = true) {
 void compileArrayCopy(LinearExecutionState &engine, u8 sourceReg, u8 destReg,
                       u32 address, u8 *valueArray, size_t value_count) {
   // Use a memcpy if too big
-  if (value_count > 8) {
+  if (value_count > 32 * 4) {
     u8 *data = engine.allocData(value_count);
     memcpy(data, valueArray, value_count);
     // Now we know that data won't be freed on us or overwritten.
@@ -390,8 +390,20 @@ void compileArrayCopy(LinearExecutionState &engine, u8 sourceReg, u8 destReg,
     return;
   }
 
-  for (u32 i = 0; i < value_count; ++i) {
-    compileStore(engine, sourceReg, destReg, address + i, valueArray[i],
+  for (u32 i = 0; i < value_count / 4; ++i) {
+    const u32 value = reinterpret_cast<u32*>(valueArray)[i];
+    compileStore(engine, sourceReg, destReg, address + i * 4, value,
+                 sizeof(u32));
+  }
+  if (value_count % 4 >= 2) {
+    const u32 offset = value_count - value_count % 4;
+    const u16 value = reinterpret_cast<u16*>(valueArray)[offset / 2];
+    compileStore(engine, sourceReg, destReg, address + offset * 2, value,
+                 sizeof(u16));
+  }
+  if (value_count % 1 != 0) {
+    const u32 offset = value_count - 1;
+    compileStore(engine, sourceReg, destReg, address + offset, valueArray[offset],
                  sizeof(u8));
   }
 }
