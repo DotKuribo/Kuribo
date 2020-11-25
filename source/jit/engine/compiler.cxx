@@ -537,14 +537,14 @@ static u32 __epilogue[6]{0x81E10010, 0x81C1000C, 0x80010008,
 
 bool BeginCodeList(JITEngine &engine) {
   u32 *block =
-      (u32 *)engine.alloc(JITEngine::CodeHeap::ExecuteEveryFrame, 6 * 4);
-  memcpy(block, &__prologue[0], 6 * 4);
+      (u32 *)engine.alloc(JITEngine::CodeHeap::ExecuteEveryFrame, sizeof(__prologue));
+  memcpy(block, &__prologue[0], sizeof(__prologue));
   return true;
 }
 bool EndCodeList(JITEngine &engine) {
   u32 *block =
-      (u32 *)engine.alloc(JITEngine::CodeHeap::ExecuteEveryFrame, 6 * 4);
-  memcpy(block, &__epilogue[0], 6 * 4);
+      (u32 *)engine.alloc(JITEngine::CodeHeap::ExecuteEveryFrame, sizeof(__epilogue));
+  memcpy(block, &__epilogue[0], sizeof(__epilogue));
   return true;
 }
 
@@ -634,9 +634,12 @@ bool CompileCodeList(JITEngine& engine, const u32* list, size_t size) {
     // we can't assume register values
     state.flush();
   };
-
   u32 i = 0;
   while (i < size / 4) {
+    // round up to line
+    if (i % 2) ++i;
+    if (i >= size / 4) break;
+
     const u32 op = (list[i] & 0xfe000000) >> 24;
     switch (op) {
     case 0x00:
@@ -648,10 +651,12 @@ bool CompileCodeList(JITEngine& engine, const u32* list, size_t size) {
       Handle04(bp + (list[i] & 0x01ffffff), list[i + 1]);
       i += 2;
       break;
-    case 0x06:
-      Handle06(bp + (list[i] & 0x01ffffff), list[i + 1], (u8 *)&list[i + 2]);
-      i += 2 + list[i + 1] / 4;
+    case 0x06: {
+      Handle06(bp + (list[i] & 0x01ffffff), list[i + 1], (u8*)&list[i + 2]);
+      const auto bytes = list[i + 1];
+      i += 2 + ((bytes + 7) & ~7) / 4;
       break;
+    }
     case 0x08:
       Handle08(bp + (list[i] & 0x01ffffff), list[i + 1], list[i + 2],
                list[i + 3]);

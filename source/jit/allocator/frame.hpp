@@ -41,9 +41,12 @@ public:
     if (head) {
       u8* dst = up_it;
       up_it += size;
+      KURIBO_ASSERT(up_it - begin < end - begin);
       return dst;
     } else {
-      return down_it -= size;
+      down_it -= size;
+      KURIBO_ASSERT(end - down_it < end - begin);
+      return down_it;
     }
   }
 
