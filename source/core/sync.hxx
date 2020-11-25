@@ -25,8 +25,8 @@ inline bool setInterrupts(bool state) noexcept
 {
 #if KURIBO_PLATFORM == KURIBO_PL_TYPE_WII || KURIBO_PLATFORM == KURIBO_PL_TYPE_GC
     u32 last = getMachineState();
-    setMachineState(state ? last | 0x8000 : last & ~0x8000);
-    return (last & 0x8000) >> 16;
+    setMachineState(state ? (last | 0x8000) : (last & ~0x8000));
+    return last & 0x8000;
 #else
     return false;
 #endif
@@ -51,7 +51,20 @@ struct Critical
 #endif
     bool restore = false;
 };
-
+struct CriticalContext
+{
+#if KURIBO_PLATFORM == KURIBO_PL_TYPE_WII || KURIBO_PLATFORM == KURIBO_PL_TYPE_GC
+  void lock() noexcept
+  {
+    restore = setInterrupts(false);
+  }
+  void unlock() noexcept
+  {
+    setInterrupts(restore);
+  }
+#endif
+  bool restore = false;
+};
 #if 0
 #if KURIBO_PLATFORM == KURIBO_PL_TYPE_WII || KURIBO_PLATFORM == KURIBO_PL_TYPE_GC
 struct WiiMutex {
