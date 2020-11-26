@@ -509,7 +509,7 @@ void compileInjectASM(LinearExecutionState &engine, u8 *funcPointer,
                       u32 *address, u32 size) {
   u8 *data = engine.allocData(size * 8);
   memcpy(data, (u8 *)funcPointer, (size * 8));
-  compileBranch((u32 *)address, (const char *)data, false);
+  compileBranch(address, (const char *)data, ((u32)address & 1) == 1);
   compileBranch(
       (u32 *)(data + (size * 8) - 4), (const char *)(address + 1),
       false); // calculates offsets to branch from end of code to address + 4
