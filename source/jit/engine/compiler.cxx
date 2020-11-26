@@ -377,7 +377,7 @@ void compileStore(LinearExecutionState &engine, u8 addrReg, u8 valReg,
     stw->Source = addrReg;
     stw->SIMM = 0;
   }
-
+#ifdef CACHE_SAFE
   Cache* icbi = engine.allocInstruction<Cache>();
 
   icbi->InstructionID = PPC_OP_ICBI;
@@ -386,6 +386,7 @@ void compileStore(LinearExecutionState &engine, u8 addrReg, u8 valReg,
   icbi->Reserved1 = 0;
   icbi->AltID = 982;
   icbi->Reserved3 = 0;
+#endif
 }
 
 void compileBranch(u32 *address, const char *target, bool link = true) {

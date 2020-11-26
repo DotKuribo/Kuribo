@@ -28,6 +28,14 @@ uint64_t mach_absolute_time()
 #ifndef _WIN32
 void* memcpy(void* dest, const void* src, unsigned int len)
 {
+	if (len % 4 == 0) {
+		unsigned* udest = (unsigned*)dest;
+		unsigned* usrc = (unsigned*)src;
+		for (unsigned i = 0; i < len / 4; ++i) {
+			udest[i] = usrc[i];
+		}
+		return dest;
+	}
 	char* d = (char*)dest;
 	const char* s = (const char*)src;
 	while (len--)
@@ -36,6 +44,43 @@ void* memcpy(void* dest, const void* src, unsigned int len)
 }
 void* memset(void* dest, int val, unsigned int len)
 {
+	if (len % 8 == 0 && ((unsigned)dest) % 8 == 0) {
+		unsigned dlen = len / 8;
+		volatile double* ddest = (volatile double*)dest;
+		union {
+			unsigned uval[2];
+			double dval;
+		} u;
+		u.uval[0] = val;
+		u.uval[1] = val;
+		double dval = u.dval;
+		unsigned dd = dlen - dlen % 8;
+		for (unsigned i = 0; i < dd; i += 8) {
+			ddest[i] = dval;
+			ddest[i+1] = dval;
+			ddest[i + 2] = dval;
+			ddest[i + 3] = dval;
+			ddest[i + 4] = dval;
+			ddest[i + 5] = dval;
+			ddest[i + 6] = dval;
+			ddest[i + 7] = dval;
+		}
+
+		unsigned rem = dlen % 8;
+		for (unsigned i = 0; i < rem; ++i) {
+			ddest[i] = dval;
+		}
+		return dest;
+	}
+	if (len % 4 == 0) {
+		unsigned ulen = len / 4;
+		unsigned* udest = (unsigned*)dest;
+		for (unsigned i = 0; i < ulen; ++i) {
+			udest[i] = val;
+		}
+		return dest;
+	}
+
 	unsigned char* ptr = (unsigned char*)dest;
 	while (len-- > 0)
 		*ptr++ = val;
