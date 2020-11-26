@@ -2,8 +2,10 @@ import os, subprocess, shutil, glob, json
 from pathlib import Path
 import sys
 
-DEVKIT_CPP_VERSION = "8.4.0"
-
+DEVKIT_CPP_VERSION = "10.2.0"
+GCC = "D:\\devkitPro\\devkitPPC\\bin\\powerpc-eabi-gcc.exe"
+GPP = "D:\\devkitPro\\devkitPPC\\bin\\powerpc-eabi-g++.exe"
+LD  = "D:\\devkitPro\\devkitPPC\\bin\\powerpc-eabi-ld.exe"
 
 def system_cmd(cmd):
     # print(cmd)
@@ -48,7 +50,9 @@ class Clang(SimpleUtil):
             "data-sections": True,
             "function-sections": True,
             "lto": True,
-            "std": "c++17"
+            "std": "c++20",
+            "fast-math": True,
+            "permissive": True
         }
         self.warnings = {
             "deprecated": False,
@@ -99,7 +103,7 @@ class Clang(SimpleUtil):
         args += [src, "-o", dst] + additional
         argx = " ".join(args)
         if src.endswith(".c"):
-            argx = argx.replace("--std=c++17", "")
+            argx = argx.replace("--std=c++20", "")
         self.run_with_args("clang++.exe" if not src.endswith(".c") else "clang.exe", argx)
 
     def link(self, objects, dst):
