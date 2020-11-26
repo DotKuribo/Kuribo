@@ -1,4 +1,5 @@
 #include "system.hxx"
+#include <io/filesystem.hxx>
 
 namespace kuribo {
 
@@ -15,6 +16,7 @@ DeferredSingleton<System> System::sInstance;
 System::System() {
 	KURIBO_SCOPED_LOG("Initializing System");
 
+	io::fs::InitFilesystem();
 	// loadCodeTextFile("kuribo_codes.txt");
 }
 
