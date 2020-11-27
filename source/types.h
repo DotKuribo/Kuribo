@@ -12,3 +12,9 @@ typedef uint64_t  u64;
 
 typedef float 		f32;
 typedef double 		f64;
+
+#if defined(__GNUC__) || defined(__clang__)
+#define KX_EXPORT __attribute__((visibility("default")))
+#else
+#define KX_EXPORT
+#endif
