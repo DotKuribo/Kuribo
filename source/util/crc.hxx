@@ -54,10 +54,12 @@ static constexpr unsigned int crc_table[256] = {
 
 }
 
+namespace util {
 constexpr uint32_t crc32(eastl::string_view str)
 {
 	uint32_t crc = 0xffffffff;
 	for (auto c : str)
 		crc = (crc >> 8) ^ detail::crc_table[(crc ^ c) & 0xff];
 	return crc ^ 0xffffffff;
+}
 }
