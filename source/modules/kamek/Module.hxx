@@ -50,6 +50,8 @@ struct KamekModule final : public IModule
 					KURIBO_LOG("Unknown error.\n");
 					break;
 				}
+				mData = nullptr;
+				return;
 			}
 			KURIBO_ASSERT(succ == KamekLoadResult::OK);
 			KURIBO_ASSERT(text);
@@ -60,13 +62,14 @@ struct KamekModule final : public IModule
 	~KamekModule() override
 	{}
 
-	void prologue(kuribo_module_call type, kuribo_module_context* interop) override final
+	int prologue(int type, __kuribo_module_ctx_t* interop) override final
 	{
+		if (mData == nullptr) return KURIBO_EXIT_FAILURE;
 		KURIBO_SCOPED_LOG("KAMEK Module: Prologue call");
 		KURIBO_LOG("Type: %u, interop: %p\n", (u32)type, interop);
 		KURIBO_LOG("PROLOGUE: %p\n", mData.get());
 		// Prologue is first function
-		reinterpret_cast<kuribo_module_prologue>(mData.get())(type, interop);
+		return reinterpret_cast<kuribo_module_prologue>(mData.get())(type, interop);
 	}
 	eastl::unique_ptr<u8[]> mData;
 };

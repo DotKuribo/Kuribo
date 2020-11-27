@@ -2,6 +2,8 @@
 
 #include "io/io.hxx"
 
+#include "modules/SymbolManager.hxx"
+
 namespace kuribo {
 
 void* interopAlloc(kuribo_token* token, u32 size, u32 align)
@@ -51,7 +53,7 @@ ModuleInstance::~ModuleInstance()
 }
 bool ModuleInstance::configured() const
 {
-	return mInterop.id == static_cast<u32>(InteropId::Valid);
+  return mInterop.register_procedure != nullptr;
 }
 bool ModuleInstance::configure()
 {
@@ -59,22 +61,21 @@ bool ModuleInstance::configure()
 	if (configured())
 		return false;
 
-	mInterop.id = static_cast<u32>(InteropId::Valid);
-	mInterop.kuribo_alloc = interopAlloc;
-	mInterop.kuribo_free = interopFree;
-	mInterop.Token = reinterpret_cast<kuribo_token*>(100); // todo
+  mInterop.core_version = KURIBO_CORE_VERSION;
+  mInterop.register_procedure = kxRegisterProcedure;
+  mInterop.get_procedure = kxGetProcedure;
 	return true;
 }
 
 bool ModuleInstance::attach()
 {
 	KURIBO_SCOPED_LOG("Module: Attaching");
-	return moduleCall(KURIBO_MODULE_CALL_ATTACH, &mInterop);
+	return moduleCall(KURIBO_REASON_LOAD, &mInterop);
 }
 bool ModuleInstance::detach()
 {
 	KURIBO_SCOPED_LOG("Module: Detatching");
-	return moduleCall(KURIBO_MODULE_CALL_DETACH, &mInterop);
+  return moduleCall(KURIBO_REASON_UNLOAD, &mInterop);
 }
 bool ModuleInstance::reload()
 {
@@ -95,7 +96,7 @@ bool ModuleInstance::transitionTo(eastl::unique_ptr<IModule> pOther)
 	pModule = std::move(pOther);
 	return attach();
 }
-bool ModuleInstance::moduleCall(kuribo_module_call t, kuribo_module_context* arg)
+bool ModuleInstance::moduleCall(__KReason t, __kuribo_module_ctx_t* arg)
 {
 	if (!configured())
 		return false;

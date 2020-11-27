@@ -7,37 +7,12 @@
 
 #pragma once
 
-#include <stdint.h>
+#include <sdk/kuribo_sdk.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-enum kuribo_module_call
-{
-	KURIBO_MODULE_CALL_ATTACH,
-	KURIBO_MODULE_CALL_DETACH
-};
-
-/*
-Used to keep track of memory allocations of modules.
-*/
-struct kuribo_token;
-
-struct kuribo_module_context
-{
-	uint32_t id;
-
-	void* (*kuribo_alloc)(
-		struct kuribo_token* token,
-		uint32_t size,
-		uint32_t align);
-	void (*kuribo_free)(struct kuribo_token* token, void* block);
-
-	struct kuribo_token* Token;
-};
-
-typedef void* (*kuribo_module_prologue)(enum kuribo_module_call, struct kuribo_module_context*);
 
 #ifdef KURIBO_MODULE
 void kuribo_module_impl_setup_memory(kuribo_module_context* context);

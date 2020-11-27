@@ -12,10 +12,12 @@
 
 namespace kuribo {
 
+typedef void kuribo_token;
+
 struct IModule
 {
 	virtual ~IModule() = default;
-	virtual void prologue(kuribo_module_call type, kuribo_module_context* interop) = 0;
+  virtual int prologue(int type, __kuribo_module_ctx_t* interop) = 0;
 };
 void* interopAlloc(kuribo_token* token, u32 size, u32 align);
 void interopFree(kuribo_token* token, void* block);
@@ -36,7 +38,7 @@ struct ModuleInstance
 	};
 
 	eastl::unique_ptr<IModule> pModule;
-	kuribo_module_context mInterop {};
+	__kuribo_module_ctx_t mInterop {};
 
 	bool configured() const;
 	bool configure();
@@ -47,7 +49,7 @@ struct ModuleInstance
 	bool transitionTo(eastl::unique_ptr<IModule> pOther);
 
 private:
-	bool moduleCall(kuribo_module_call t, kuribo_module_context* arg);
+	bool moduleCall(__KReason t, __kuribo_module_ctx_t* arg);
 };
 
 class ProjectManager
