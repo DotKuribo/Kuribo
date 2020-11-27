@@ -1,5 +1,5 @@
 /*========================================
-||    Kuribo SDK 1.0
+||    Kuribo SDK 2.0
 ==========================================
 
 Supported targets:
@@ -18,6 +18,9 @@ Provided APIs:
 - KURIBO_PATCH_BL(addr, value)
 - KURIBO_PATCH_32(addr, value)
 - KURIBO_VTABLE(vtable_pointer, function_index)
+- KURIBO_EXPORT_AS(function, name)
+- KURIBO_EXPORT(function)
+- KURIBO_GET_PROCEDURE(name)
 - kBranch, kCall, kWrite32, kVtable: Light c++ wrappers
 
 Provided Types:
@@ -28,6 +31,7 @@ Provided Types:
 
 Changelog:
  - 1.0: Initial revision
+ - 2.0: Added linking APIs
 
 Example Usage:
   KURIBO_MODULE_BEGIN("Demo Module", "riidefi", "Beta")
@@ -65,6 +69,18 @@ Example Usage:
         PTA_NODE_RESET   // void reset()
       };
       KURIBO_PATCH_32(KURIBO_VTABLE(0x808CAFE0, PTA_NODE_ATTACH), MyFunction);
+
+    // =======================
+    // KURIBO LINKING APIs
+    // =======================
+      // Export a function symbol as a specified name. 
+      KURIBO_EXPORT_AS(MySqrt, "sqrt");
+
+      // Export a function symbol. 
+      KURIBO_EXPORT(MySqrt);
+
+      // Get the address of a procedure.
+      void* MySqrt = KURIBO_GET_PROCEDURE("MySqrt");
 
     // =======================
     // C++ Wrapper APIs
@@ -114,6 +130,13 @@ Example Usage:
 #define KURIBO_PATCH_32(address, value)
 /* Helper for calculating a virtual table offset */
 #define KURIBO_VTABLE(vtable_address, function_index)
+
+/* Export a function symbol as a specified name. */
+#define KURIBO_EXPORT_AS(function, name)
+/* Export a function symbol. */
+#define KURIBO_EXPORT(function)
+/* Get the address of a procedure. */
+#define KURIBO_GET_PROCEDURE(function)
 
 #define KURIBO_MODULE_END() /* End a module block */
 

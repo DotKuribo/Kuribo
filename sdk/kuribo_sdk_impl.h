@@ -51,11 +51,19 @@ typedef struct __kuribo_simple_meta_v0 {
 typedef struct {
   u32 core_version; /* must match KURIBO_CORE_VERSION */
 
+  /* kxRegisterProcedure, if available */
+  void (*register_procedure)(const char* symbol, u32 value);
+  /* kxGetProcedure, if available */
+  u32 (*get_procedure)(const char* symbol);
+
+  /* Communication channel */
   union {
     /* for KURIBO_REASON_INQUIRE_META_DESC */
     __kuribo_simple_meta_v0* fillin_meta;
   } udata;
 } __kuribo_module_ctx_t;
+
+typedef int(*kuribo_module_prologue)(int k_reason, __kuribo_module_ctx_t* k_ctx);
 
 /* @brief Fillin a simple metadata structure for a
  *        KURIBO_REASON_INQUIRE_META_DESC call.
@@ -179,6 +187,28 @@ static inline void __kuribo_multipatch_b(u32* addr, u32 value, u32* save,
 #define KURIBO_PATCH_32(addr, value)                                           \
   __KURIBO_PATCH_32_IMPL((addr), (value),                                      \
                          MACRO_CONCAT(__kuribo_multisave, __COUNTER__))
+
+#ifdef KURIBO_EXPORT_AS
+#undef KURIBO_EXPORT_AS
+#endif
+
+#define KURIBO_EXPORT_AS(function, name)                                       \
+  if (__kuribo_attach && __ctx->register_procedure)                            \
+  __ctx->register_procedure(name, (u32)&function)
+
+#ifdef KURIBO_EXPORT
+#undef KURIBO_EXPORT
+#endif
+
+#define KURIBO_EXPORT(function) KURIBO_EXPORT_AS(function, #function)
+
+#ifdef KURIBO_GET_PROCEDURE
+#undef KURIBO_GET_PROCEDURE
+#endif
+
+#define KURIBO_GET_PROCEDURE(function)                                         \
+  ((void*)__kuribo_ctx->get_procedure(function))
+
 #undef KURIBO_VTABLE
 #undef KURIBO_EXECUTE_ON_LOAD
 #undef KURIBO_EXECUTE_ON_UNLOAD
