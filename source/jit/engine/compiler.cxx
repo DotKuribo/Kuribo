@@ -509,7 +509,7 @@ void compileInjectASM(LinearExecutionState &engine, u8 *funcPointer,
                       u32 *address, u32 size) {
   u8 *data = engine.allocData(size * 8);
   memcpy(data, (u8 *)funcPointer, (size * 8));
-  compileBranch(address, (const char *)data, ((u32)address & 1) == 1);
+  compileBranch((u32*)((u32)address & ~1), (const char *)data, ((u32)address & 1) == 1);
   compileBranch(
       (u32 *)(data + (size * 8) - 4), (const char *)(address + 1),
       false); // calculates offsets to branch from end of code to address + 4
@@ -615,7 +615,7 @@ bool CompileCodeList(JITEngine& engine, const u32* list, size_t size) {
   };
 
   auto HandleC6 = [&](u32 address, u32 target) {
-    compileBranch((u32 *)address, (const char *)target, false);
+    compileBranch((u32 *)(address & ~1), (const char *)target, address & 1);
   };
 
   auto HandleE0 = [&](u16 bp, u16 po) {
@@ -681,8 +681,16 @@ bool CompileCodeList(JITEngine& engine, const u32* list, size_t size) {
       HandleC2(bp + (list[i] & 0x01ffffff), (u32)&list[i + 2], list[i + 1]);
       i += 2 + (list[i + 1] * 2);
       break;
+    case 0xC4:
+      HandleC2((bp + (list[i] & 0x01ffffff)) | 1, (u32)&list[i + 2], list[i + 1]);
+      i += 2 + (list[i + 1] * 2);
+      break;
     case 0xC6:
       HandleC6(bp + (list[i] & 0x01ffffff), list[i + 1]);
+      i += 2;
+      break;
+    case 0xC8:
+      HandleC6((bp + (list[i] & 0x01ffffff)) | 1, list[i + 1]);
       i += 2;
       break;
     case 0xE0:
