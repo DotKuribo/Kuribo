@@ -44,7 +44,7 @@ class Clang(SimpleUtil):
         self.game = game
 
         self.options = {
-            "target": "ppc-linux-eabi",
+            "target": "ppc-linux-eabi -mcpu=750",
             "exceptions": False,
             "rtti": False,
             "data-sections": True,
@@ -68,14 +68,13 @@ class Clang(SimpleUtil):
             "CHAISCRIPT_NO_THREADS"
         ]
         self.system_includes = [
-            "./source",
-            "./source/vendor",
-            "./",
-            "./vendor"
+            "./", # source
+            "../", # top (for sdk)
+            "./vendor" # source/vendor
         ]
 
         # LINKER
-        self.linker_arg = "-T ..\\arch\\gc.lcf --gc-sections --Map ../bin/out.map"
+        self.linker_arg = "-T ..\\arch\\gc.lcf --gc-sections --Map ../bin/out.map -mllvm --march=ppc-linux-eabi -mllvm -mcpu=750"
 
     def get_option(self, key):
         return self.options[key]

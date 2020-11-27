@@ -91,7 +91,8 @@ project "kuribo"
 	location "./"
 	includedirs {
 		"./source",
-		"./source/vendor"
+		"./source/vendor",
+		"./"
 	}
 
 	setupMainApp()
