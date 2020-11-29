@@ -11,7 +11,7 @@ void DefaultAbortHandler(const char* reason)
 }
 
 
-DeferredSingleton<System> System::sInstance;
+System* System::sInstance;
 
 System::System() {
 	KURIBO_SCOPED_LOG("Initializing System");

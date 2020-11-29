@@ -23,10 +23,10 @@ class System final
 {
 	friend struct DeferredSingleton<System>;
 public:
-	static DeferredSingleton<System> sInstance;
-    static System& getSystem() { KURIBO_ASSERT(sInstance.isStaticInstanceInitialized()); return sInstance.getInstance(); }
-    static bool createSystem() { return sInstance.initializeStaticInstance(); }
-    static bool destroySystem() { return sInstance.deinitializeStaticInstance(); }
+	static System* sInstance;
+    static System& getSystem() { KURIBO_ASSERT(sInstance); return *sInstance; }
+    static void createSystem() { sInstance = new System(); }
+    static void destroySystem() { delete sInstance; }
 
     inline void abort(const char* reason)
 	{
@@ -41,6 +41,8 @@ public:
 
 private:
 	AbortHandler mAbortHandler = DefaultAbortHandler;
+
+public:
 	ProjectManager mProjectManager;
 public:
     System();
