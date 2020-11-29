@@ -1,69 +1,9 @@
 #ifndef __KURIBO_SDK_IMPL
 #define __KURIBO_SDK_IMPL
 
-/* No guarantee of stdint.h or __has_include.
- * This works on all targets.
- */
-typedef unsigned int u32;
-typedef signed int s32;
-typedef unsigned short u16;
-typedef signed short s16;
-typedef unsigned char u8;
-typedef signed char s8;
-typedef float f32;
-typedef double f64;
+#include <kuribo_sdk/kuribo_types.h>
+#include <kuribo_sdk/kuribo_internal_api.h>
 
-/* Misc compiler info */
-#ifdef __VERSION__
-#define __KURIBO_CC_VERSION __VERSION__
-#elif defined(__CWCC__)
-#define STRINGIZE(x) STRINGIZE_(x)
-#define STRINGIZE_(x) #x
-#define __KURIBO_CC_VERSION "CWCC " STRINGIZE(__CWCC__)
-#else
-#define __KURIBO_CC_VERSION "Unknown"
-#endif
-
-/* Return status from a kernel call. */
-enum __KExit {
-  KURIBO_EXIT_SUCCESS = 1,
-  KURIBO_EXIT_FAILURE = 0,
-};
-
-/* Kernel calls */
-enum __KReason {
-  KURIBO_REASON_LOAD,              /* Load this module. */
-  KURIBO_REASON_UNLOAD,            /* Reverse modifications from loading. */
-  KURIBO_REASON_INQUIRE_META_DESC, /* Fill in __kuribo_simple_meta_v0. */
-};
-
-/* Data to be filled in by simple metadata inquiry. */
-typedef struct __kuribo_simple_meta_v0 {
-  const char* compiler_name;
-  const char* build_date;
-
-  /* user-reported data */
-  const char* module_name;
-  const char* module_author;
-  const char* module_version;
-} __kuribo_simple_meta_v0;
-
-typedef struct {
-  u32 core_version; /* must match KURIBO_CORE_VERSION */
-
-  /* kxRegisterProcedure, if available */
-  void (*register_procedure)(const char* symbol, u32 value);
-  /* kxGetProcedure, if available */
-  u32 (*get_procedure)(const char* symbol);
-
-  /* Communication channel */
-  union {
-    /* for KURIBO_REASON_INQUIRE_META_DESC */
-    __kuribo_simple_meta_v0* fillin_meta;
-  } udata;
-} __kuribo_module_ctx_t;
-
-typedef int(*kuribo_module_prologue)(int k_reason, __kuribo_module_ctx_t* k_ctx);
 
 /* @brief Fillin a simple metadata structure for a
  *        KURIBO_REASON_INQUIRE_META_DESC call.
@@ -95,11 +35,7 @@ static inline int __kuribo_fillin_metadata_v0(
  */
 extern __kuribo_module_ctx_t* __kuribo_ctx;
 
-#ifdef __cplusplus
-#define KURIBO_EXTERN_C extern "C"
-#else
-#define KURIBO_EXTERN_C extern
-#endif
+
 
 #ifdef KURIBO_MODULE_BEGIN
 #undef KURIBO_MODULE_BEGIN
@@ -135,7 +71,11 @@ extern __kuribo_module_ctx_t* __kuribo_ctx;
   return KURIBO_EXIT_FAILURE;                                                  \
   } /* End function*/
 
+#ifndef _WIN32
 #define icbi(_val) asm volatile("icbi 0, %0" : : "r"(_val))
+#else
+#define icbi
+#endif // _WIN32
 static inline void __kuribo_multipatch_write(u32* addr, u32 value, u32* save,
                                              int attach) {
   if (attach) {

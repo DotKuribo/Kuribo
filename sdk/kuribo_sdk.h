@@ -105,9 +105,6 @@ Example Usage:
 ========================================*/
 #pragma once
 
-/* Compatible kernel-api version */
-#define KURIBO_CORE_VERSION 0
-
 #define KURIBO_MODULE_BEGIN(name, author, version) /* Begin a module block */
 
 /*=========================================================*
