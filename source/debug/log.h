@@ -29,22 +29,34 @@ inline u32 get_tick() {
 #define microsecs_to_ticks(usec)	(((usec)*(TB_TIMER_CLOCK/125))/8)
 #define nanosecs_to_ticks(nsec)		(((nsec)*(TB_TIMER_CLOCK/125))/8000)
 
-#ifdef KURIBO_ENABLE_LOG
-#if KURIBO_PLATFORM == KURIBO_PL_TYPE_WII || KURIBO_PLATFORM == KURIBO_PL_TYPE_GC
+#if KURIBO_PLATFORM == KURIBO_PL_TYPE_WII ||                                   \
+    KURIBO_PLATFORM == KURIBO_PL_TYPE_GC
 #include "api/HostInterop.h"
-#define __OSReport(...) do { \
-			( (void (*) (const char*, ...)) FFI_NAME(os_report)) (__VA_ARGS__); \
-			} while (0)
-#define KURIBO_LOG_FUNCTION __OSReport
+#define __OSReport(...)                                                        \
+  do {                                                                         \
+    ((void (*)(const char*, ...))FFI_NAME(os_report))(__VA_ARGS__);            \
+  } while (0)
+#define KURIBO_PRINTF __OSReport
 #else
 #include <stdio.h>
-#define KURIBO_LOG_FUNCTION printf
+#define KURIBO_PRINTF printf
+#endif
+
+#ifdef KURIBO_ENABLE_LOG
+#if KURIBO_PLATFORM == KURIBO_PL_TYPE_WII || KURIBO_PLATFORM == KURIBO_PL_TYPE_GC
+#define KURIBO_LOG_FUNCTION KURIBO_PRINTF
+#else
+#include <stdio.h>
+#define KURIBO_LOG_FUNCTION KURIBO_PRINTF
 #endif
 
 #define STRINGIZE(x) STRINGIZE_(x)
 #define STRINGIZE_(x) #x
 #define LINE_STRING STRINGIZE(__LINE__)
-#define KURIBO_LOG(...) KURIBO_LOG_FUNCTION("[" __FILE__ ":" LINE_STRING "] " __VA_ARGS__ )
+#define KURIBO_LOG(...) do {\
+  ScopedLog::printIndent(); \
+  KURIBO_LOG_FUNCTION("[" __FILE__ ":" LINE_STRING "] " __VA_ARGS__ ); \
+  } while (0)
 #else
 #define KURIBO_LOG(...)
 #define KURIBO_LOG_FUNCTION(...)
@@ -56,10 +68,8 @@ struct ScopedLog {
   ScopedLog(const char* msg, const char* file = nullptr, int line = -1, const char* fn = nullptr)
     : m_msg(msg)
   {
-    char ibuf[20]{};
-    ibuf[0] = ' ';
-    // indent(ibuf, 20);
-    KURIBO_LOG_FUNCTION("\n<%s:%i in %s: %s%s> {\n", file ? file : "", line, fn, &ibuf, msg);
+    printIndent();
+    KURIBO_LOG_FUNCTION("<%s:%i in %s: %s> {\n", file ? file : "", line, fn, msg);
     ++sLogIndent;
     m_begin = get_tick();
   }
@@ -71,17 +81,27 @@ struct ScopedLog {
     const u32 ns = ticks_to_nanosecs(time);
 
     --sLogIndent;
-    char ibuf[20]{};
-    ibuf[0] = ' ';
-    // indent(ibuf, 20);
-    KURIBO_LOG_FUNCTION("%s} </%s> (%u ticks, %u microseconds, %u nanoseconds)\n", &ibuf, m_msg, time, ps, ns);
+    printIndent();
+    KURIBO_LOG_FUNCTION("} </%s> (%u ticks, %u microseconds, %u nanoseconds)\n", m_msg, time, ps, ns);
   }
-private:
-  void indent(char* out, u32 size)
+public:
+  static void indent(char* out, int size)
   {
+    if (sLogIndent >= size)
+      return;
     for (int i = 0; i < sLogIndent; ++i)
       out[i] = '\t';
+    out[sLogIndent] = '\0';
   }
+  static void printIndent() {
+    // char buf[256];
+    // indent(buf, sizeof(buf));
+    // KURIBO_LOG_FUNCTION("%s", buf);
+    for (int i = 0 ; i < sLogIndent; ++i) {
+      KURIBO_LOG_FUNCTION("%s", "    ");
+    }
+  }
+private:
   const char* m_msg;
   u32 m_begin;
 #endif

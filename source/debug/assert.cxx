@@ -2,7 +2,7 @@
 #include "log.h"
 #include "assert.h"
 
-int ScopedLog::sLogIndent;
+int ScopedLog::sLogIndent = 1;
 
 #if KURIBO_PLATFORM == KURIBO_PL_TYPE_WII || KURIBO_PLATFORM == KURIBO_PL_TYPE_GC
 #define getSp()   ({volatile  u32 _rval; \
