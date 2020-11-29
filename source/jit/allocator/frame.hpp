@@ -50,6 +50,29 @@ public:
     }
   }
 
+  // -1 if failed
+  u32 getSaveState() const {
+    const s32 delta_up = up_it - begin;
+    const s32 delta_down = end - down_it;
+    KURIBO_ASSERT(delta_up > 0 && delta_down > 0);
+    const u16 trunc_delta_up = static_cast<u16>(delta_up);
+    if (trunc_delta_up != delta_up) return 0xFFFF'FFFF;
+    const s16 trunc_delta_down = static_cast<u16>(delta_down);
+    if (trunc_delta_down != delta_down) return 0xFFFF'FFFF;
+
+    return (delta_up << 16) | delta_down;
+  }
+
+  // return if successful
+  bool applySaveState(u32 save) {
+    if (save == 0xFFFF'FFFF) return false;
+    const u16 delta_up = (save >> 16);
+    const u16 delta_down = (save << 16) >> 16;
+    up_it = begin + delta_up;
+    down_it = end - delta_down;
+    return true;
+  }
+
 private:
   u8* begin;
   u8* end;

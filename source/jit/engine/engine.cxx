@@ -68,3 +68,12 @@ u32 *FindHookInMemory(GeckoHookType type) {
 }
 
 } // namespace gecko_jit
+
+namespace kuribo {
+
+kxGeckoJitEngine* kxCreateJitEngine(u8* memory_begin, u32 memory_size) {
+  return new gecko_jit::JITEngine(memory_begin, memory_size);
+}
+void kxDestroyJitEngine(kxGeckoJitEngine* pEngine) { delete pEngine; }
+
+} // namespace kuribo

@@ -708,3 +708,21 @@ bool CompileCodeList(JITEngine& engine, const u32* list, size_t size) {
 }
 
 } // namespace gecko_jit
+
+namespace kuribo {
+
+compiled_function_t kxGeckoJitCompileCodes(u8* memory_begin, u32 memory_size,
+                                           const u32* list, u32 size) {
+  gecko_jit::JITEngine engine(memory_begin, memory_size);
+
+  if (!gecko_jit::BeginCodeList(engine))
+    return nullptr;
+  if (!gecko_jit::CompileCodeList(engine, list, size))
+    return nullptr;
+  if (!gecko_jit::EndCodeList(engine))
+    return nullptr;
+
+  return reinterpret_cast<compiled_function_t>(memory_begin);
+}
+
+} // namespace kuribo
