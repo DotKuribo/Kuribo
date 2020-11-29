@@ -44,6 +44,23 @@ ModuleInstance::ModuleInstance(eastl::unique_ptr<IModule> m)
 	: pModule(eastl::move(m))
 {
 	configure();
+
+	__kuribo_simple_meta_v0 meta;
+  mInterop.udata.fillin_meta = &meta;
+  const bool res = moduleCall(KURIBO_REASON_INQUIRE_META_DESC, &mInterop);
+	KURIBO_ASSERT(res && "Unable to inquire metadata");
+  if (res) {
+		KURIBO_PRINTF("~~~~~~~~~~~~~~~~~~~~~~~\n");
+    KURIBO_PRINTF("[KURIBO] Loading module\n");
+    KURIBO_PRINTF("         Name:     \t%s\n", meta.module_name);
+    KURIBO_PRINTF("         Author:   \t%s\n", meta.module_author);
+    KURIBO_PRINTF("         Version:  \t%s\n", meta.module_version);
+    KURIBO_PRINTF("                     \n");
+    KURIBO_PRINTF("         Built:    \t%s\n", meta.build_date);
+    KURIBO_PRINTF("         Compiler: \t%s\n", meta.compiler_name);
+    KURIBO_PRINTF("~~~~~~~~~~~~~~~~~~~~~~~\n");
+  }
+  mInterop.udata.fillin_meta = nullptr;
 	attach();
 }
 ModuleInstance::~ModuleInstance()

@@ -25,6 +25,21 @@ void* FreeListAllocator::Allocate(const std::size_t size, const std::size_t alig
 	Node* affectedNode,
 		* previousNode;
 	this->Find(size, alignment, padding, previousNode, affectedNode);
+	if (affectedNode == nullptr) {
+          KURIBO_LOG("Allocation failed\n");
+          KURIBO_LOG("Looking for %u bytes\n", size);
+    Node *it = m_freeList.head, *itPrev = nullptr;
+
+    while (it != nullptr) {
+      padding = Utils::CalculatePaddingWithHeader(
+          (std::size_t)it, alignment,
+          sizeof(FreeListAllocator::AllocationHeader));
+      const std::size_t requiredSpace = size + padding;
+      KURIBO_LOG("Free block: Size of %u\n", it->data.blockSize);
+      itPrev = it;
+      it = it->next;
+    }
+	}
 	KURIBO_ASSERT(affectedNode != nullptr && "Not enough memory");
 
 

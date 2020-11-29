@@ -1,4 +1,5 @@
 #include "SymbolManager.hxx"
+#include "debug.h"
 
 namespace kuribo {
 
@@ -19,6 +20,7 @@ u32 SymbolManager::getProcedure(u32 symbol) {
 }
 
 void kxRegisterProcedure(const char* symbol, u32 value) {
+  KURIBO_LOG("Registering %s at %p\n", symbol, (void*)value);
   SymbolManager::getStaticInstance().registerProcedure(symbol, value);
 }
 u32 kxGetProcedure(const char* symbol) {
