@@ -1,16 +1,15 @@
 from __future__ import annotations
 
-import os
-import re
-import sys
-
 from io import BytesIO
 from elftools.elf.elffile import ELFFile, Section
-from elftools.elf.constants import SH_FLAGS, SHN_INDICES
 
 from addressmapper import AddressMapper
 from elfenums import ELFFlags
-from exceptions import *
+from exceptions import (AlreadyLinkedException,
+                        AlreadyExistsException,
+                        InvalidOperationException,
+                        InvalidDataException,
+                        InvalidTableLinkageException)
 from ioreader import *
 from kmhooks import HookData
 from kmword import KWord
@@ -92,7 +91,7 @@ class Linker(AddressMapper):
     def bssSize(self) -> int:
         return self.bssEnd - self.bssStart
 
-    """ MODULES """
+    # """ MODULES """
 
     def add_module(self, elf: str):
         if self._linked:
@@ -100,18 +99,18 @@ class Linker(AddressMapper):
         if elf in self._modules.keys():
             raise AlreadyExistsException("This module is already part of this linker")
 
-        self += elf
+        self.__iadd__(elf)
 
     def clear_modules(self):
         self._modules = {}
 
     def remove_module(self, file: str):
-        self -= file
+        self.__isub__(file)
 
     def pop_module(self, file: str):
         return self._modules.pop(file)
 
-    """ LINKING """
+    # """ LINKING """
 
     def link_static(self, symbolData: dict, baseAddr: int = None):
         if baseAddr:
@@ -126,7 +125,7 @@ class Linker(AddressMapper):
     def _do_link(self, symbolData: list):
         if self._linked:
             raise AlreadyLinkedException("This linker has already been linked")
-        _linked = True
+        self._linked = True
 
         for key in symbolData:
             self._externSymbols[key] = self.remap(symbolData[key])
@@ -136,34 +135,22 @@ class Linker(AddressMapper):
         self._process_relocations()
         self._process_hooks()
 
-    """ SECTIONS """
+    # """ SECTIONS """
 
     def _import_sections(self, prefix: str, alignEnd: int = 4):
         for elf in self._modules.values():
             for section in [section for section in elf.iter_sections() if section.name.startswith(prefix)]:
                 self._sectionBases[section.name + str(section.data_size)] = KWord(self._location, KWord.Types.ABSOLUTE)
-
-                """
+                
                 if alignEnd > 0 and section.data_size % alignEnd != 0:
                     self._location += (section.data_size + (alignEnd-1)) & -alignEnd
 
                     padlen = alignEnd - (section.data_size % alignEnd)
-                    print("Aligning:", alignEnd, padlen, hex(self._location))
                     self._binaries.append(BytesIO(section.data() + b"\x00" * padlen))
                 else:
-                    print("Already aligned")
                     self._location += section.data_size
                     self._binaries.append(BytesIO(section.data()))
-                """
 
-                self._location += section.data_size
-
-                # Align to 4 bytes
-                if ((self._location % 4) != 0):
-                    alignment = 4 - (self._location % 4)
-                    self._binaries.append(BytesIO(b"\x00" * alignment))
-                    self._location += alignment
-    
     def _collect_sections(self):
         self._location = KWord(self.baseAddress, KWord.Types.ABSOLUTE)
         self.outputStart = KWord(self._location, KWord.Types.ABSOLUTE)
@@ -191,7 +178,7 @@ class Linker(AddressMapper):
         for binary in self._binaries:
             self._memory.write(binary.getvalue())
 
-    """ SYMBOLS """
+    # """ SYMBOLS """
 
     def _resolve_symbol(self, elfpath: str, name: str) -> Linker.Symbol:
         _locals = self._localSymbols[elfpath]
@@ -293,7 +280,7 @@ class Linker(AddressMapper):
 
         return _symbolNames
 
-    """ RELOCATIONS """
+    # """ RELOCATIONS """
 
     def _process_relocations(self):
         for _elfkey in self._modules:
@@ -343,7 +330,7 @@ class Linker(AddressMapper):
             if not self._kamek_use_reloc(reloc, source, dest):
                 self._fixups.append(Linker.RelocFixup(reloc, source, dest))
 
-    """ KAMEK HOOKS """
+    # """ KAMEK HOOKS """
 
     def _kamek_use_reloc(self, _type: ELFFlags.Reloc, source: KWord, dest: KWord):
         if source < self.kamekStart or source >= self.kamekEnd:

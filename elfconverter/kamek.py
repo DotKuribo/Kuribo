@@ -1,14 +1,10 @@
 from __future__ import annotations
 
-import os
-import re
-import sys
-
 from io import BytesIO
 
-from exceptions import *
+from exceptions import InvalidOperationException, InvalidCommandException
 from ioreader import *
-from linker import Linker, AddressMapper
+from linker import Linker
 from kmcommands import RelocCommand
 from kmhooks import KHook
 from kmword import KWord
@@ -31,7 +27,7 @@ class KamekBinary(object):
 
     def __repr__(self) -> str:
         return f"repr={vars(self)}"
-    
+
     def __str__(self) -> str:
         return f"Kamek binary; {self.__repr__()}"
 

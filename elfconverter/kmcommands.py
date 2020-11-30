@@ -3,8 +3,8 @@ from __future__ import annotations
 from io import BytesIO
 
 from elfenums import ELFFlags
-from exceptions import *
-from ioreader import read_uint32, write_uint32, write_uint16
+from exceptions import InvalidOperationException
+from ioreader import write_uint32, write_uint16
 from kmword import KWord
 
 class Command(object):
@@ -43,7 +43,7 @@ class BranchCommand(Command):
 
     def __repr__(self) -> str:
         return f"repr={vars(self)}"
-    
+
     def __str__(self) -> str:
         return f"Branch Command; {self.__repr__()}"
 
@@ -62,8 +62,7 @@ class BranchCommand(Command):
 
     def apply(self, file: "KamekBinary"):
         if self.is_equal_reloc_absolute() and file.contains(self.address):
-            file.rawCode.seek(self.address - file.baseAddr)
-            write_uint32(file.rawCode, self._generate_instruction())
+            file.write_u32(self.address, self._generate_instruction())
 
     def pack_riivo(self) -> str:
         raise NotImplementedError()
@@ -87,7 +86,7 @@ class PatchExitCommand(Command):
 
     def __repr__(self) -> str:
         return f"repr={vars(self)}"
-    
+
     def __str__(self) -> str:
         return f"Exit Patch Command; {self.__repr__()}"
 

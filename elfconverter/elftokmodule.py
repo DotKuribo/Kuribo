@@ -2,12 +2,7 @@ from __future__ import annotations
 
 import argparse
 import os
-import sys
 import re
-import shutil
-import tempfile
-
-from elftools.elf.elffile import ELFFile
 
 from addressmapper import AddressMapper
 from exceptions import InvalidDataException
@@ -121,10 +116,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
-    
-
-
-    
-
-
