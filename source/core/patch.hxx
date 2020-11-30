@@ -45,8 +45,13 @@ static inline void directWrite(T* dst, T val)
 //!
 static inline void directBranchEx(void* addr, void* ptr, bool lk = false)
 {
-	directWrite(reinterpret_cast<u32*>(addr),
-		((reinterpret_cast<u32>(ptr) - reinterpret_cast<u32>(addr)) & 0x3ffffff) | 0x48000000 | !!lk);
+  const u32 delta = reinterpret_cast<u32>(ptr) - reinterpret_cast<u32>(addr);
+  if (delta & 0b11)
+    KURIBO_LOG("Address translation is too granular:"
+               " 0x%08X will be clipped to 0x%08X\n",
+               delta, delta & ~0b11);
+  directWrite(reinterpret_cast<u32*>(addr),
+              (delta & 0x3ffffff & ~0b11) | 0x48000000 | !!lk);
 }
 
 //! @brief Write a branch (b) instruction at a specified address.
