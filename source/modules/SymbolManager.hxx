@@ -32,11 +32,11 @@ public:
     return getProcedure(util::crc32(symbol));
   }
 
-private:
-  static DeferredInitialization<SymbolManager> sInstance;
-
   void registerProcedure(u32 symbol, u32 value);
   u32 getProcedure(u32 symbol);
+
+private:
+  static DeferredInitialization<SymbolManager> sInstance;
 
   struct Entry {
     Entry() = default;
