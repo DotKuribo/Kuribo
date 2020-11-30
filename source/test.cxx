@@ -19,6 +19,11 @@
 #include <io/filesystem.hxx>
 #include <io/io.hxx>
 
+#include <jit/engine/compiler.hpp>
+
+#include <modules/SymbolManager.hxx>
+#include <modules/kamek/Module.hxx>
+
 void GeckoJIT_RunTests();
 
 namespace tests {
@@ -85,7 +90,7 @@ void comet_app_install(void* image, void* vaddr_load, uint32_t load_size) {
 #endif
   heap = {};
 
-
+  kuribo::directBranchEx((void*)0x80102021, (void*)0x80402010, true);
   const auto heap_halfsize = heap.size() / 2;
   kuribo::mem::Init(heap.data(), heap_halfsize, heap.data() + heap_halfsize, heap_halfsize);
   tests::CodeJIT();
@@ -95,4 +100,26 @@ void comet_app_install(void* image, void* vaddr_load, uint32_t load_size) {
   }
 
   kuribo::System::createSystem();
+  kuribo::SymbolManager::initializeStaticInstance();
+  kuribo::kxRegisterProcedure("OSReport", FFI_NAME(os_report));
+  kuribo::kxRegisterProcedure("kxGeckoJitCompileCodes",
+                              (u32)&kuribo::kxGeckoJitCompileCodes);
+  KURIBO_LOG("ADDR OF PROJMGR: %p\n",
+             &kuribo::System::getSystem().mProjectManager);
+  auto our_module = eastl::make_unique<kuribo::KamekModule>("Kuribo/TestModule.kmk");
+  if (our_module->mData == nullptr) {
+    KURIBO_PRINTF("[KURIBO] Failed to load module\n");
+  } else {
+    kuribo::System::getSystem().mProjectManager.attachModule(
+        eastl::move(our_module));
+  }
+  typedef f32 (*kxU32toF32_t)(u32);
+  u32 in = 50;
+  kxU32toF32_t cvt = (kxU32toF32_t)kuribo::kxGetProcedure("kxConvertU32toF32");
+  if (cvt == nullptr) {
+    KURIBO_LOG("Cannot find function!\n");
+  } else {
+    f32 out = cvt(in);
+    KURIBO_LOG("RESULT: %f\n", out);
+  }
 }
