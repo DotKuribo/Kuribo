@@ -46,7 +46,8 @@ void InitFilesystem() {
 #else // HW
   gNodes = *reinterpret_cast<const Node**>(0x80000038);
 #endif
-  gStrings = reinterpret_cast<const char*>(gNodes + gNodes[0].folder.sibling_next);
+  gStrings =
+      reinterpret_cast<const char*>(gNodes + gNodes[0].folder.sibling_next);
 }
 
 inline bool equalsIgnoreCase(char a, char b) {
@@ -55,10 +56,12 @@ inline bool equalsIgnoreCase(char a, char b) {
   return delta == 0 || abs_delta == ('a' - 'A');
 }
 
-inline bool pathCompare(const eastl::string_view& lhs, const eastl::string_view& rhs) {
+inline bool pathCompare(const eastl::string_view& lhs,
+                        const eastl::string_view& rhs) {
   // Left -- full path
   // Right -- fragment
-  if (lhs.size() < rhs.size()) return false;
+  if (lhs.size() < rhs.size())
+    return false;
 
   for (u32 i = 0; i < rhs.size(); ++i) {
     if (!equalsIgnoreCase(lhs[i], rhs[i]))
@@ -113,7 +116,8 @@ s32 resolvePath(const Node* nodes, eastl::string_view path, u32 search_from) {
     }
 
   compare:
-    const bool name_delimited_by_slash = path.rfind('/') != eastl::string_view::npos;
+    const bool name_delimited_by_slash =
+        path.rfind('/') != eastl::string_view::npos;
 
     // Traverse all children of the parent.
     const u32 anchor = it;

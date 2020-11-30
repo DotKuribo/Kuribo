@@ -14,7 +14,8 @@ constexpr std::array<u32, 8> __GcVIHook{0x7C030034, 0x38830020, 0x5485083C,
 constexpr u32 beginInMemory = 0x80003000;
 constexpr u32 endInMemory = 0x81000000;
 
-// Unfortunately we can't use this until added to EASTL or we properly link against libc++/libstdc++
+// Unfortunately we can't use this until added to EASTL or we properly link
+// against libc++/libstdc++
 #if 0
 template<class RandomIt1>
 using searcher = std::boyer_moore_horspool_searcher<RandomIt1,
@@ -28,7 +29,7 @@ struct DirectHash {
 };
 #endif
 
-template <typename T> u32 *search(u32 *begin, u32 *end, T search_for) {
+template <typename T> u32* search(u32* begin, u32* end, T search_for) {
 #if 0
   std::boyer_moore_horspool_searcher<decltype(search_for.begin()),
     DirectHash,
@@ -38,24 +39,24 @@ template <typename T> u32 *search(u32 *begin, u32 *end, T search_for) {
   return eastl::search(begin, end, search_for.begin(), search_for.end());
 }
 
-u32 *FindHookInMemory(GeckoHookType type) {
+u32* FindHookInMemory(GeckoHookType type) {
 #ifdef _WIN32
   return nullptr;
 #endif
 
-  u32 *hooked = nullptr;
+  u32* hooked = nullptr;
 
   if (type == GeckoHookType::VI_GC) {
-    auto found = search((u32 *)beginInMemory, (u32 *)endInMemory, __GcVIHook);
-    if (found == (u32 *)endInMemory)
+    auto found = search((u32*)beginInMemory, (u32*)endInMemory, __GcVIHook);
+    if (found == (u32*)endInMemory)
       return nullptr;
     hooked = found;
 
     // TODO
   } else if (type == GeckoHookType::VI_WII) {
     const auto found =
-        search((u32 *)beginInMemory, (u32 *)endInMemory, __WiiVIHook);
-    if (found == (u32 *)endInMemory)
+        search((u32*)beginInMemory, (u32*)endInMemory, __WiiVIHook);
+    if (found == (u32*)endInMemory)
       return nullptr;
     hooked = found;
 

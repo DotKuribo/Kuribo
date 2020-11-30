@@ -2,9 +2,9 @@
 
 #include "modules/gecko/Frontend.hxx"
 
+#include "system/memory.hxx"
 #include <EASTL/array.h>
 #include <EASTL/string.h>
-#include "system/memory.hxx"
 
 #include "common.h"
 
@@ -31,7 +31,7 @@ void CodeJIT() {
   {
     KURIBO_SCOPED_LOG("Code Parsing Test");
 
-    //GeckoJIT_RunTests();
+    // GeckoJIT_RunTests();
   }
 
   eastl::string_view search_path = "Race/Course/castle_course.szs";
@@ -67,10 +67,12 @@ void CodeParser() {
   KURIBO_SCOPED_LOG("Code Parsing Test");
 
   // Create a read-only view.
-  const eastl::string_view code_example = "$Proc Mon PAL\n042153B8 4E800020\n$OtherCode\n04238F14 4E800020\n04009600 48239100";
+  const eastl::string_view code_example =
+      "$Proc Mon PAL\n042153B8 4E800020\n$OtherCode\n04238F14 "
+      "4E800020\n04009600 48239100";
 
   // Construct a lexical parser.
-  kuribo::gecko::CodeParser<kuribo::gecko::CodePrinter> parser{ code_example };
+  kuribo::gecko::CodeParser<kuribo::gecko::CodePrinter> parser{code_example};
 
   // Attach a temporary CodePrinter to receive parsing actions.
   kuribo::gecko::CodePrinter printer;
@@ -92,7 +94,8 @@ void comet_app_install(void* image, void* vaddr_load, uint32_t load_size) {
 
   kuribo::directBranchEx((void*)0x80102021, (void*)0x80402010, true);
   const auto heap_halfsize = heap.size() / 2;
-  kuribo::mem::Init(heap.data(), heap_halfsize, heap.data() + heap_halfsize, heap_halfsize);
+  kuribo::mem::Init(heap.data(), heap_halfsize, heap.data() + heap_halfsize,
+                    heap_halfsize);
   tests::CodeJIT();
   tests::CodeParser();
   if (kuribo::BuildPlatform != kuribo::platform::PC) {
@@ -106,7 +109,8 @@ void comet_app_install(void* image, void* vaddr_load, uint32_t load_size) {
                               (u32)&kuribo::kxGeckoJitCompileCodes);
   KURIBO_LOG("ADDR OF PROJMGR: %p\n",
              &kuribo::System::getSystem().mProjectManager);
-  auto our_module = eastl::make_unique<kuribo::KamekModule>("Kuribo/TestModule.kmk");
+  auto our_module =
+      eastl::make_unique<kuribo::KamekModule>("Kuribo/TestModule.kmk");
   if (our_module->mData == nullptr) {
     KURIBO_PRINTF("[KURIBO] Failed to load module\n");
   } else {

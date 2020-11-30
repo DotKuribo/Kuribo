@@ -37,7 +37,7 @@ public:
   // Backs up the allocation position.
   // -1 if failed
   u32 getSaveState() const { return mCodeAllocator.getSaveState(); }
-  
+
   // Restore allocation position. Does not zerofill used memory.
   // return if success
   bool applySaveState(u32 save) { return mCodeAllocator.applySaveState(save); }
@@ -46,10 +46,7 @@ private:
   FrameAllocator mCodeAllocator;
 };
 
-enum class GeckoHookType {
-  VI_GC,
-  VI_WII
-};
+enum class GeckoHookType { VI_GC, VI_WII };
 u32* FindHookInMemory(GeckoHookType type);
 
 } // namespace gecko_jit
