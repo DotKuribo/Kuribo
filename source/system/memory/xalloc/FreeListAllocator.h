@@ -9,16 +9,17 @@ class FreeListAllocator final : public Allocator {
 public:
   enum class PlacementPolicy { FIND_FIRST, FIND_BEST };
 
-private:
-  struct FreeHeader {
-    std::size_t blockSize;
-  };
   struct AllocationHeader {
 
     Allocator* heap;
     unsigned short blockSize;
     char padding; // char
     char _;
+  };
+
+private:
+  struct FreeHeader {
+    std::size_t blockSize;
   };
 
   using Node = SinglyLinkedList<FreeHeader>::Node;

@@ -12,7 +12,13 @@ void* Alloc(u32 size, Heap& heap, u32 align) noexcept {
 }
 
 void Free(void* ptr, Heap& heap) { heap.free(ptr); }
-void Free(void* ptr) { /* TODO */
+void Free(void* ptr) {
+  if (ptr == nullptr)
+    return;
+  // TODO: Unsafe if given invalid pointer
+  using alloc_header = xalloc::FreeListAllocator::AllocationHeader;
+  alloc_header* pHeader = reinterpret_cast<alloc_header*>(ptr) - 1;
+  pHeader->heap->Free(ptr);
 }
 
 DeferredInitialization<FreeListHeap> sMem1Heap, sMem2Heap;
@@ -77,7 +83,7 @@ void operator delete[](void* p) {
     kuribo::mem::Free(p);
 }
 
-#if __cplusplus >= 201402L
+#if __cplusplus >= 201402L || defined(_WIN32)
 void operator delete(void* ptr, u32) { operator delete(ptr); }
 void operator delete[](void* ptr, u32) { operator delete(ptr); }
 #endif
