@@ -50,6 +50,51 @@ public:
     }
   }
 
+  struct MemoryRegion {
+    void* begin;
+    void* end;
+  };
+
+  struct UsedRegion {
+    MemoryRegion low;
+    MemoryRegion high;
+  };
+
+  void printStats() const {
+#ifdef KURIBO_ENABLE_LOG
+    const u32 alloc_head = static_cast<u32>(up_it - begin);
+    const u32 alloc_tail = static_cast<u32>(end - down_it);
+    const u32 alloc_total = alloc_head + alloc_tail;
+    const u32 remainder = static_cast<u32>(down_it - up_it);
+
+    KURIBO_LOG("-----------------------\n");
+    KURIBO_LOG("Computing remainder of the FrameAllocator:\n");
+    KURIBO_LOG("-----------------------\n");
+    KURIBO_LOG("Allocated from head: %u\n", alloc_head);
+    KURIBO_LOG("Allocated from tail: %u\n", alloc_tail);
+    KURIBO_LOG("-----------------------\n");
+    KURIBO_LOG("Allocated total:     %u\n", alloc_total);
+    KURIBO_LOG("Remaining bytes:     %u\n", remainder);
+    KURIBO_LOG("-----------------------\n");
+#endif
+  }
+
+  MemoryRegion computeRemainder() const {
+#ifdef KURIBO_ENABLE_LOG
+    printStats();
+#endif
+
+    return {up_it, down_it};
+  }
+
+  UsedRegion computeUsed() const {
+#ifdef KURIBO_ENABLE_LOG
+    printStats();
+#endif
+
+    return {.low = {begin, up_it}, .high = {down_it, end}};
+  }
+
   // -1 if failed
   u32 getSaveState() const {
     const s32 delta_up = up_it - begin;

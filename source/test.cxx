@@ -31,7 +31,7 @@ void CodeJIT() {
   {
     KURIBO_SCOPED_LOG("Code Parsing Test");
 
-    // GeckoJIT_RunTests();
+    GeckoJIT_RunTests();
   }
 
   eastl::string_view search_path = "Race/Course/castle_course.szs";

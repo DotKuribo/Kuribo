@@ -597,6 +597,15 @@ void GeckoJIT_RunTests() {
 
       gecko_jit::EndCodeList(engine);
     }
+
+    {
+      KURIBO_SCOPED_LOG("Returning remaining memory.");
+      auto leftover = engine.computeRemaining();
+      const auto size = reinterpret_cast<char*>(leftover.end) -
+                        reinterpret_cast<char*>(leftover.begin);
+      
+      kuribo::mem::AddRegion(leftover.begin, size, false);
+    }
   }
 
   {
