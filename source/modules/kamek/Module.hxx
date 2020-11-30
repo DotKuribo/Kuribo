@@ -10,6 +10,9 @@ struct KamekModule final : public IModule
 {
 	KamekModule(const char* path)
 	{
+#ifdef _WIN32
+    return;
+#endif
 
 		KURIBO_SCOPED_LOG("Loading kamek");
 		int size = 0;

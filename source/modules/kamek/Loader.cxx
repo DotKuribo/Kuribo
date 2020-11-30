@@ -3,6 +3,8 @@
 #include "core/patch.hxx"
 #include "core/sync.hxx"
 
+#include "modules/SymbolManager.hxx"
+
 namespace kuribo {
 
 struct KBHeader {
@@ -27,12 +29,120 @@ enum class k
 	CondWrite16 = 37,
 	CondWrite8 = 38,
 	Branch = 64,
-	BranchLink = 65
+	BranchLink = 65,
+
+	ExternRel24 = 100
+};
+union addr {
+  u32 d32;
+  u32* p32;
+  u16* p16;
+  u8* p8;
 };
 
 constexpr u32 resolveAddress(u32 address, u32 text)
 {
 	return ((address & 0x80000000) || (address & 0x90000000)) ? address : text + address;
+}
+
+static bool handleRelocElf(k cmd, addr& address, u32 resolved, const u32* input) {
+	#ifdef KAMEK_VERBOSE
+  KURIBO_SCOPED_LOG("ELF RELOCATION");
+  KURIBO_LOG("TYPE: %u\n", (u32)cmd);
+	#endif
+  switch (cmd) {
+  case k::Addr32:
+    *address.p32 = resolved;
+    break;
+  case k::Addr16Lo:
+    *address.p16 = resolved & 0xffff;
+    break;
+  case k::Addr16Hi:
+    *address.p16 = resolved >> 16;
+    break;
+  case k::Addr16Ha: {
+    *address.p16 = (resolved >> 16) + !!(resolved & 0x8000);
+    break;
+  }
+  case k::Rel24:
+  case k::ExternRel24: {
+	rel24:
+  if (cmd == k::ExternRel24) {
+      resolved = SymbolManager::getStaticInstance().getProcedure(resolved);
+      if (resolved == 0) {
+        KURIBO_LOG("Failed to link: unknown symbol hash!\n");
+        return false;
+      } 
+
+			KURIBO_LOG("Resolved symbol hash to %p!\n", (void*)resolved);
+		}
+    *address.p32 &= 0xFC000003;
+    // TODO -- isCode check?
+    u32 r = resolved;
+    if ((address.d32 & 0x90000000) == 0x90000000 &&
+        (resolved & 0x80000000) == 0x80000000) {
+      KURIBO_LOG("MEM2 -> MEM1 ISSUE\n");
+      KURIBO_LOG("Cannot branch from %p to %p\n", (void*)address.d32, (void*)resolved);
+      u32* jump_helper = new u32[4];
+      KURIBO_LOG("Jump helper at %p\n", jump_helper);
+      // lis r11, HA
+      // addi r11, r11, LO
+      // mtctr r11
+      // bctr
+      jump_helper[0] = 0x3D600000 | (resolved >> 16);
+      jump_helper[1] = 0x616B0000 | (resolved & 0xffff);
+      jump_helper[2] = 0x7D6903A6;
+      jump_helper[3] = 0x4E800420;
+      r = (u32)jump_helper;
+    }
+    *address.p32 |= ((r - address.d32) & 0x3FFFFFC);
+    break;
+  }
+  case k::Write32:
+    *address.p32 = *(const u32*)input;
+    break;
+  case k::Write16:
+    *address.p16 = (*(const u32*)input) & 0xffff;
+    break;
+  case k::Write8:
+    *address.p8 = (*(const u32*)input) & 0xff;
+    break;
+  case k::Branch:
+  case k::BranchLink:
+    *address.p32 = (cmd == k::BranchLink) + 0x48000000;
+    //	KURIBO_ASSERT(!"UNSUPPORTED");
+    //	goto rel24;
+    {
+      *address.p32 &= 0xFC000003;
+      // TODO -- isCode check?
+      u32 r = resolved;
+      if ((address.d32 & 0x80000000) == 0x80000000 &&
+          (resolved & 0x90000000) == 0x90000000) {
+        KURIBO_LOG("MEM1 -> MEM2 ISSUE\n");
+        u32* jump_helper =
+            new (&mem::GetHeap(mem::GlobalHeapType::MEM1)) u32[4];
+        KURIBO_LOG("Jump helper at %p\n", jump_helper);
+        // lis r11, HA
+        // addi r11, r11, LO
+        // mtctr r11
+        // bctr
+        jump_helper[0] = 0x3D600000 | (resolved >> 16);
+        jump_helper[1] = 0x616B0000 | (resolved & 0xffff);
+        jump_helper[2] = 0x7D6903A6;
+        jump_helper[3] = 0x4E800420;
+        r = (u32)jump_helper;
+      }
+      *address.p32 |= ((r - address.d32) & 0x3FFFFFC);
+    }
+    break;
+  default:
+    KURIBO_LOG("Kamek relocation..\n");
+    return false;
+  }
+	#ifdef KAMEK_VERBOSE
+  KURIBO_LOG("Success!");
+	#endif
+  return true;
 }
 
 bool handleElfRelocation(const u8*& input, u32 text)
@@ -41,14 +151,10 @@ bool handleElfRelocation(const u8*& input, u32 text)
 	input += 4;
 
 	k cmd = static_cast<k>(cmdHeader >> 24);
+	#ifdef KAMEK_VERBOSE
 	KURIBO_LOG("kCommand: %u\n", (u32)cmd);
-	union addr
-	{
-		u32 d32;
-		u32* p32;
-		u16* p16;
-		u8* p8;
-	};
+	#endif
+
 	addr address;
 	address.d32 = cmdHeader & 0xffffff;
 
@@ -63,94 +169,8 @@ bool handleElfRelocation(const u8*& input, u32 text)
 		// Relative address
 		address.d32 += text;
 	}
-	const u32 resolved = resolveAddress(*(const u32*)input, text);
-
-	auto handleRelocElf = [&](k cmd) -> bool
-	{
-		KURIBO_SCOPED_LOG("ELF RELOCATION");
-		KURIBO_LOG("TYPE: %u\n", (u32)cmd);
-		switch (cmd)
-		{
-		case k::Addr32:
-			*address.p32 = resolved;
-			break;
-		case k::Addr16Lo:
-			*address.p16 = resolved & 0xffff;
-			break;
-		case k::Addr16Hi:
-			*address.p16 = resolved >> 16;
-			break;
-		case k::Addr16Ha: {
-			*address.p16 = (resolved >> 16) + !!(resolved & 0x8000);
-			break;
-		}
-		case k::Rel24:
-		{
-		rel24:
-			*address.p32 &= 0xFC000003;
-			// TODO -- isCode check?
-			u32 r = resolved;
-			if ((address.d32 & 0x90000000) && (resolved & 0x80000000))
-			{
-				KURIBO_LOG("MEM2 -> MEM1 ISSUE\n");
-				u32* jump_helper = new u32[4];
-				KURIBO_LOG("Jump helper at %p\n", jump_helper);
-				// lis r11, HA
-				// addi r11, r11, LO
-				// mtctr r11
-				// bctr
-				jump_helper[0] = 0x3D600000 | (resolved >> 16);
-				jump_helper[1] = 0x616B0000 | (resolved & 0xffff);
-				jump_helper[2] = 0x7D6903A6;
-				jump_helper[3] = 0x4E800420;
-				r = (u32)jump_helper;
-			}
-			*address.p32 |= ((r- address.d32) & 0x3FFFFFC);
-			break;
-		}
-		case k::Write32:
-			*address.p32 = *(const u32*)input;
-			break;
-		case k::Write16:
-			*address.p16 = (*(const u32*)input) & 0xffff;
-			break;
-		case k::Write8:
-			*address.p8 = (*(const u32*)input) & 0xff;
-			break;
-		case k::Branch:
-		case k::BranchLink:
-			*address.p32 = (cmd == k::BranchLink) + 0x48000000;
-			//	KURIBO_ASSERT(!"UNSUPPORTED");
-			//	goto rel24;
-			{
-				*address.p32 &= 0xFC000003;
-				// TODO -- isCode check?
-				u32 r = resolved;
-				if ((address.d32 & 0x80000000) && (resolved & 0x90000000))
-				{
-					KURIBO_LOG("MEM1 -> MEM2 ISSUE\n");
-					u32* jump_helper = new (&mem::GetHeap(mem::GlobalHeapType::MEM1)) u32[4];
-					KURIBO_LOG("Jump helper at %p\n", jump_helper);
-					// lis r11, HA
-					// addi r11, r11, LO
-					// mtctr r11
-					// bctr
-					jump_helper[0] = 0x3D600000 | (resolved >> 16);
-					jump_helper[1] = 0x616B0000 | (resolved & 0xffff);
-					jump_helper[2] = 0x7D6903A6;
-					jump_helper[3] = 0x4E800420;
-					r = (u32)jump_helper;
-				}
-				*address.p32 |= ((r - address.d32) & 0x3FFFFFC);
-			}
-			break;
-		default:
-			KURIBO_LOG("Kamek relocation..\n");
-			return false;
-		}
-		return true;
-	};
-
+	const u32 resolved = cmd == k::ExternRel24 ? *(const u32*)input : resolveAddress(*(const u32*)input, text);
+	
 	auto handleRelocKamek = [&](k cmd)
 	{
 		const u32 original = ((const u32*)input)[1];
@@ -208,7 +228,15 @@ bool handleElfRelocation(const u8*& input, u32 text)
 
 	bool bad = false;
 
-	if (!handleRelocElf(cmd) && !handleRelocKamek(cmd))
+	const bool standard_reloc_result =
+            handleRelocElf(cmd, address, resolved, (const u32*)input);
+
+	#ifdef KAMEK_VERBOSE
+	KURIBO_LOG("Standard reloc? %s\n",
+                   standard_reloc_result ? "YES" : "NO");
+	#endif
+
+	if (!standard_reloc_result && !handleRelocKamek(cmd))
 	{
 		KURIBO_LOG("Unknown command: %d\n", (u32)cmd);
 		bad = true;
@@ -258,7 +286,9 @@ KamekLoadResult loadKamekBinary(KamekLoadParam param)
 
 	while (input < inputEnd)
 	{
+		#ifdef KAMEK_VERBOSE
 		KURIBO_SCOPED_LOG("Handling relocation...");
+		#endif
 		if (!handleElfRelocation(input, text))
 			return KamekLoadResult::BadReloc;
 	}
