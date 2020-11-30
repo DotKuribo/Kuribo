@@ -26,7 +26,7 @@ kxCompiledFunction kxGeckoJitCompileCodes(
     //! The size (in bytes) of the memory region.
     u32 free_space_size,
     //! The start of your GCT. Header/footer are not needed.
-    void* gct_begin,
+    const void* gct_begin,
     //! The size (in bytes) of your GCT.
     u32 gct_size);
 
