@@ -3,51 +3,52 @@
 #include <EASTL/unique_ptr.h>
 
 #include "config.h"
-#include "types.h"
 #include "debug.h"
 #include "debug/log.h"
+#include "types.h"
 
-#include "util/deferred.hxx"
 #include "core/sync.hxx"
+#include "util/deferred.hxx"
 
 #include "modules/Project.hxx"
 
-
 namespace kuribo {
 
-using AbortHandler = void(*)(const char* reason);
+using AbortHandler = void (*)(const char* reason);
 
 void DefaultAbortHandler(const char* reason);
 
-class System final
-{
-	friend struct DeferredSingleton<System>;
-public:
-	static System* sInstance;
-    static System& getSystem() { KURIBO_ASSERT(sInstance); return *sInstance; }
-    static void createSystem() { sInstance = new System(); }
-    static void destroySystem() { delete sInstance; }
+class System final {
+  friend struct DeferredSingleton<System>;
 
-    inline void abort(const char* reason)
-	{
-		KURIBO_LOG("---\nkuribo ALERT: ABORTING SYSTEM\n---\n");
-		KURIBO_LOG("USER REASON: %s\n", reason);
-		KURIBO_LOG("UPTIME: %u SECONDS\n", 0);
-		// TODO -- print stack
-		mAbortHandler(reason);
-	}
-	void setAbortHandler(AbortHandler handler) { mAbortHandler = handler; }
-	bool loadCodeTextFile(const eastl::string_view path);
+public:
+  static System* sInstance;
+  static System& getSystem() {
+    KURIBO_ASSERT(sInstance);
+    return *sInstance;
+  }
+  static void createSystem() { sInstance = new System(); }
+  static void destroySystem() { delete sInstance; }
+
+  inline void abort(const char* reason) {
+    KURIBO_LOG("---\nkuribo ALERT: ABORTING SYSTEM\n---\n");
+    KURIBO_LOG("USER REASON: %s\n", reason);
+    KURIBO_LOG("UPTIME: %u SECONDS\n", 0);
+    // TODO -- print stack
+    mAbortHandler(reason);
+  }
+  void setAbortHandler(AbortHandler handler) { mAbortHandler = handler; }
+  bool loadCodeTextFile(const eastl::string_view path);
 
 private:
-	AbortHandler mAbortHandler = DefaultAbortHandler;
+  AbortHandler mAbortHandler = DefaultAbortHandler;
 
 public:
-	ProjectManager mProjectManager;
+  ProjectManager mProjectManager;
+
 public:
-    System();
-    ~System() = default;
+  System();
+  ~System() = default;
 };
-
 
 } // namespace kuribo

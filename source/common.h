@@ -1,5 +1,5 @@
 #include "config.h"
-#include "types.h"
-#include "debug/log.h"
 #include "debug.h"
+#include "debug/log.h"
 #include "system/memory.hxx"
+#include "types.h"

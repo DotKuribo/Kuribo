@@ -1,9 +1,9 @@
 #pragma once
 
-#include <types.h>
 #include <EASTL/string_view.h>
-#include <utility>
 #include <debug/assert.h>
+#include <types.h>
+#include <utility>
 
 namespace kuribo::io::fs {
 
@@ -58,30 +58,20 @@ public:
 
     return *this = Path(path, mNode != nullptr ? mNode - gNodes : 0);
   }
-  Path& operator/=(const eastl::string_view path) {
-    return append(path);
-  }
+  Path& operator/=(const eastl::string_view path) { return append(path); }
 
   void clear() { mNode = nullptr; }
   //! foo/bar -> foo/
-  Path& removeFilename() {
-    return *this = getParentPath();
-  }
+  Path& removeFilename() { return *this = getParentPath(); }
   //! foo/bar -> foo/baz
   Path& replaceFilename(const eastl::string_view path) {
     removeFilename();
     return append(path);
   }
-  void swap(Path& other) {
-    std::swap(mNode, other.mNode);
-  }
+  void swap(Path& other) { std::swap(mNode, other.mNode); }
 
-  Path getRootPath() const {
-    return gNodes;
-  }
-  Path getParentPath() const {
-    return getParentNode();
-  }
+  Path getRootPath() const { return gNodes; }
+  Path getParentPath() const { return getParentNode(); }
 
   const Node* getNode() const { return mNode; }
   s32 getResolved() const {
@@ -93,11 +83,14 @@ public:
   const Node* getParentNode() const {
     KURIBO_ASSERT(gNodes != nullptr && "Call InitFilesystem() first");
 
-    if (mNode == nullptr) return nullptr;
-    if (mNode->is_folder) return gNodes + mNode->folder.parent;
+    if (mNode == nullptr)
+      return nullptr;
+    if (mNode->is_folder)
+      return gNodes + mNode->folder.parent;
 
     const Node* it = mNode;
-    // Do not need to check lower bound, as the first entry must be a folder (the root)
+    // Do not need to check lower bound, as the first entry must be a folder
+    // (the root)
     while (!it->is_folder)
       --it;
     return it;
@@ -113,9 +106,7 @@ public:
     return !mNode->is_folder;
   }
 
-  const char* getName() const {
-    return gStrings + mNode->name_offset;
-  }
+  const char* getName() const { return gStrings + mNode->name_offset; }
 
   bool operator==(const Path& rhs) const { return mNode == rhs.mNode; }
   bool operator!=(const Path& rhs) const { return !operator==(rhs); }
@@ -130,7 +121,7 @@ public:
   RecursiveDirectoryIterator() = default;
 
   RecursiveDirectoryIterator operator++() {
-    mPath = { mPath.getNode() + 1 };
+    mPath = {mPath.getNode() + 1};
     return *this;
   }
   Path operator*() const { return mPath; }
@@ -144,8 +135,9 @@ public:
 
   RecursiveDirectoryIterator begin() const { return mPath; }
   RecursiveDirectoryIterator end() const {
-    if (!mPath.getNode()->is_folder) return begin();
-    return Path{ gNodes + mPath.getNode()->folder.sibling_next };
+    if (!mPath.getNode()->is_folder)
+      return begin();
+    return Path{gNodes + mPath.getNode()->folder.sibling_next};
   }
 
 private:

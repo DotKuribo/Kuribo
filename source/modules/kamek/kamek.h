@@ -9,6 +9,4 @@
 #define kctInjectCall 4
 #define kctPatchExit 5
 
-
-#define kmIdentifier(key, counter) \
-	_k##key##counter
+#define kmIdentifier(key, counter) _k##key##counter
