@@ -30,17 +30,7 @@ void* FreeListAllocator::Allocate(const std::size_t size,
   if (affectedNode == nullptr) {
     KURIBO_LOG("Allocation failed\n");
     KURIBO_LOG("Looking for %u bytes\n", size);
-    Node *it = m_freeList.head, *itPrev = nullptr;
-
-    while (it != nullptr) {
-      padding = Utils::CalculatePaddingWithHeader(
-          (std::size_t)it, alignment,
-          sizeof(FreeListAllocator::AllocationHeader));
-      const std::size_t requiredSpace = size + padding;
-      KURIBO_LOG("Free block: Size of %u\n", it->data.blockSize);
-      itPrev = it;
-      it = it->next;
-    }
+    PrintStats();
   }
   KURIBO_ASSERT(affectedNode != nullptr && "Not enough memory");
 
@@ -149,7 +139,7 @@ void FreeListAllocator::Free(void* ptr) {
       (FreeListAllocator::AllocationHeader*)headerAddress};
 
   if (allocationHeader->blockSize > (u16)-1) {
-    // KURIBO_LOG("Invalid free call.\n");
+    KURIBO_LOG("Invalid free call.\n");
     return;
   }
 
@@ -208,10 +198,39 @@ void FreeListAllocator::Reset() {
   m_used = 0;
   m_peak = 0;
   Node* firstNode = (Node*)getData();
+  // TODO: Should this subtract the size of a node?
   firstNode->data.blockSize = m_totalSize;
   firstNode->next = nullptr;
   m_freeList.head = nullptr;
   m_freeList.insert(nullptr, firstNode);
+}
+
+bool FreeListAllocator::AddFreeRegion(void* begin, void* end) {
+  const auto size = static_cast<char*>(end) - static_cast<char*>(begin);
+
+  if (size <= sizeof(Node)) {
+    // Don't bother: size is too small
+    KURIBO_LOG("Couldn't add free region: %u bytes is too small.\n",
+               static_cast<u32>(size));
+    return false;
+  }
+  PrintStats();
+  Node* pNode = reinterpret_cast<Node*>(begin);
+  // TODO: Is this subtraction necessary?
+  pNode->data.blockSize = size - sizeof(Node);
+  pNode->next = m_freeList.head;
+  m_freeList.insert(nullptr, pNode);
+  PrintStats();
+  return true;
+}
+
+void FreeListAllocator::PrintStats() const {
+  KURIBO_LOG("-------\n");
+  for (const Node* it = m_freeList.head; it != nullptr; it = it->next) {
+    KURIBO_LOG("Free block: Size %u\n",
+               static_cast<u32>(it->data.blockSize));
+  }
+  KURIBO_LOG("-------\n");
 }
 
 } // namespace xalloc

@@ -22,7 +22,20 @@ void Init(char* mem1b, u32 mem1s, char* mem2b, u32 mem2s) {
   sMem2Heap.initialize(mem2b, mem2s);
 }
 
-void AddRegion(u32 start, u32 size, bool mem2) {}
+static bool AddRegion(void* begin, void* end,
+                      DeferredInitialization<FreeListHeap>& heap) {
+  KURIBO_ASSERT(heap.isInitialized());
+  if (!heap.isInitialized())
+    return false;
+  return heap->getAlloc().AddFreeRegion(begin, end);
+}
+
+bool AddRegion(void* start, u32 size, bool mem2) {
+  KURIBO_LOG("Adding region to %s heap.\n", mem2 ? "MEM2" : "MEM1");
+
+  return AddRegion(start, reinterpret_cast<char*>(start) + size,
+                   mem2 ? sMem2Heap : sMem1Heap);
+}
 
 Heap& GetHeap(GlobalHeapType type) {
   switch (type) {

@@ -42,6 +42,10 @@ public:
   // return if success
   bool applySaveState(u32 save) { return mCodeAllocator.applySaveState(save); }
 
+  FrameAllocator::MemoryRegion computeRemaining() const {
+    return mCodeAllocator.computeRemainder();
+  }
+
 private:
   FrameAllocator mCodeAllocator;
 };

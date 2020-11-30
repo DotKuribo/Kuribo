@@ -44,6 +44,9 @@ public:
 
   void Reset() override;
 
+  bool AddFreeRegion(void* begin, void* end);
+  void PrintStats() const;
+
 private:
   FreeListAllocator(FreeListAllocator& freeListAllocator);
 

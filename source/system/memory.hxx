@@ -1,6 +1,7 @@
 #pragma once
 
 #include "config.h"
+#include "debug.h"
 #include "memory/heap.hxx"
 #include "memory/stack_alloc.hxx"
 #include "types.h"
@@ -15,7 +16,7 @@ enum class GlobalHeapType {
 };
 
 void Init(char* mem1b, u32 mem1s, char* mem2b, u32 mem2s);
-void AddRegion(u32 start, u32 size, bool mem2);
+bool AddRegion(void* start, u32 size, bool mem2);
 Heap& GetHeap(GlobalHeapType type);
 
 inline Heap& GetDefaultHeap() { return GetHeap(GlobalHeapType::Default); }
