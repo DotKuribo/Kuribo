@@ -93,8 +93,9 @@ static inline void __kuribo_multipatch_write(u32* addr, u32 value, u32* save,
 
 static inline void __kuribo_multipatch_b(u32* addr, u32 value, u32* save,
                                          int attach, int lk) {
+  const u32 delta = (u32)value - (u32)addr;
   __kuribo_multipatch_write(
-      addr, 0x48000000 | ((u32)value - (u32)addr & 0x3ffffff) || lk ? 1 : 0,
+      addr, 0x48000000 | (delta & 0x3fffffc) | (lk ? 1 : 0),
       save, attach);
 }
 
