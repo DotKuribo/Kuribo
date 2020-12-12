@@ -1,0 +1,28 @@
+#pragma once
+
+#include <EASTL/string_view.h>
+#include <modules/kxer/Binary.hxx>
+#include <system/memory.hxx>
+
+namespace kuribo::kxer {
+
+struct LoadParam {
+  eastl::string_view binary;
+  mem::Heap* heap = nullptr;
+  void** prologueCb = nullptr;
+  eastl::unique_ptr<u8[]>* textCb;
+};
+
+enum class LoadResult {
+  Success,
+  MalformedRequest,
+  InvalidFileType,
+  InvalidVersion,
+  InvalidFile,
+  BadAlloc,
+  BadReloc
+};
+
+LoadResult Load(const LoadParam& param);
+
+} // namespace kuribo::kxer
