@@ -43,8 +43,8 @@
 
 .vs/*
 
-bin/*
-bin-int/*
+*/bin/*
+*/bin-int/*
 
 # Visual Studio files
 *.sln

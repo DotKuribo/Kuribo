@@ -69,8 +69,8 @@ class Clang(SimpleUtil):
         ]
         self.system_includes = [
             "./", # source
-            "../", # top (for sdk)
-            "../sdk", # sdk 
+            "../../", # top (for sdk)
+            "../../sdk", # sdk 
             "./vendor" # source/vendor
         ]
 
