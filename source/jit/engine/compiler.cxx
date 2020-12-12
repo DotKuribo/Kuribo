@@ -726,6 +726,9 @@ compiled_function_t kxGeckoJitCompileCodes(u8* memory_begin, u32 memory_size,
   if (!gecko_jit::EndCodeList(engine))
     return nullptr;
 
+  for (u32 i = 0; i < memory_size; i += 32)
+    kuribo::flushAddr(memory_begin + i);
+
   return reinterpret_cast<compiled_function_t>(memory_begin);
 }
 
