@@ -54,6 +54,8 @@ public:
     return true;
   }
 
+  ProjectManager() : mModules(8) { mModules.resize(0); }
+
 private:
   eastl::vector<eastl::unique_ptr<ModuleInstance>> mModules;
 };

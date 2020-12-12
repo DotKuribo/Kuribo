@@ -27,7 +27,7 @@ public:
     KURIBO_ASSERT(sInstance);
     return *sInstance;
   }
-  static void createSystem() { sInstance = new System(); }
+  static void createSystem() { sInstance = new (&mem::GetHeap(mem::GlobalHeapType::MEM2), 32) System(); }
   static void destroySystem() { delete sInstance; }
 
   inline void abort(const char* reason) {

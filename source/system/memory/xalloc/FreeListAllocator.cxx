@@ -28,8 +28,8 @@ void* FreeListAllocator::Allocate(const std::size_t size,
   Node *affectedNode, *previousNode;
   this->Find(size, alignment, padding, previousNode, affectedNode);
   if (affectedNode == nullptr) {
-    KURIBO_LOG("Allocation failed\n");
-    KURIBO_LOG("Looking for %u bytes\n", size);
+    KURIBO_PRINTF("Allocation failed\n");
+    KURIBO_PRINTF("Looking for %u bytes\n", size);
     PrintStats();
   }
   KURIBO_ASSERT(affectedNode != nullptr && "Not enough memory");
@@ -225,12 +225,12 @@ bool FreeListAllocator::AddFreeRegion(void* begin, void* end) {
 }
 
 void FreeListAllocator::PrintStats() const {
-  KURIBO_LOG("-------\n");
+  KURIBO_PRINTF("-------\n");
   for (const Node* it = m_freeList.head; it != nullptr; it = it->next) {
-    KURIBO_LOG("Free block: Size %u\n",
+    KURIBO_PRINTF("Free block: Size %u\n",
                static_cast<u32>(it->data.blockSize));
   }
-  KURIBO_LOG("-------\n");
+  KURIBO_PRINTF("-------\n");
 }
 
 } // namespace xalloc

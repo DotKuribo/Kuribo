@@ -18,3 +18,5 @@ typedef double f64;
 #else
 #define KX_EXPORT
 #endif
+
+#define CACHE_SAFE

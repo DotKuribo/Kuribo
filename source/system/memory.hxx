@@ -12,7 +12,7 @@ namespace mem {
 enum class GlobalHeapType {
   Default, // Decide between MEM1 and MEM2
   MEM1,
-  MEM2
+  MEM2=MEM1
 };
 
 void Init(char* mem1b, u32 mem1s, char* mem2b, u32 mem2s);

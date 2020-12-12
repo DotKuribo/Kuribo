@@ -12,17 +12,17 @@ namespace kuribo {
 
 class SymbolManager {
 public:
-  SymbolManager() = default;
+  SymbolManager() : mEntries(128) { mEntries.resize(0); }
   ~SymbolManager() = default;
 
   // TODO: We can do better than a singleton
   static SymbolManager& initializeStaticInstance() {
-    sInstance.initialize();
-    return sInstance;
+    sInstance = new SymbolManager();
+    return *sInstance;
   }
   static SymbolManager& getStaticInstance() {
-    KURIBO_ASSERT(sInstance.isInitialized());
-    return sInstance;
+    KURIBO_ASSERT(sInstance);
+    return *sInstance;
   }
 
   void registerProcedure(eastl::string_view symbol, u32 value) {
@@ -36,7 +36,7 @@ public:
   u32 getProcedure(u32 symbol);
 
 private:
-  static DeferredInitialization<SymbolManager> sInstance;
+  static SymbolManager* sInstance;
 
   struct Entry {
     Entry() = default;

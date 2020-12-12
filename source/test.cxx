@@ -23,6 +23,7 @@
 
 #include <modules/SymbolManager.hxx>
 #include <modules/kamek/Module.hxx>
+#include <modules/kxer/Module.hxx>
 
 void GeckoJIT_RunTests();
 
@@ -81,23 +82,25 @@ void CodeParser() {
 }
 } // namespace tests
 
-eastl::array<char, 1024 * 4 * 4 * 4> heap;
+//eastl::array<char, 1024 * 4 * 64> heap;
 void comet_app_install(void* image, void* vaddr_load, uint32_t load_size) {
   KURIBO_SCOPED_LOG("Installing...");
 
-  heap = {};
-#ifndef _WIN32
-  for (int i = 0; i < heap.size(); i += 32)
-    kuribo::flushAddr(&heap[0] + i);
-#endif
-  heap = {};
+//  heap = {};
+//#ifndef _WIN32
+//  for (int i = 0; i < heap.size(); i += 32)
+//    kuribo::flushAddr(&heap[0] + i);
+//#endif
+//  heap = {};
 
-  kuribo::directBranchEx((void*)0x80102021, (void*)0x80402010, true);
-  const auto heap_halfsize = heap.size() / 2;
-  kuribo::mem::Init(heap.data(), heap_halfsize, heap.data() + heap_halfsize,
-                    heap_halfsize);
-  tests::CodeJIT();
-  tests::CodeParser();
+  // kuribo::directBranchEx((void*)0x80102021, (void*)0x80402010, true);
+  kuribo::mem::Init((char*)0x8042EB00 + 16 * 1024, 923'448 - 2048 - 16 * 1024,
+                    nullptr,
+                    0);
+  //kuribo::mem::AddRegion((void*)0x8042EB00, 923448, false);
+
+  // tests::CodeJIT();
+  // tests::CodeParser();
   if (kuribo::BuildPlatform != kuribo::platform::PC) {
     // tests::CodeParserFromDisc();
   }
@@ -125,5 +128,24 @@ void comet_app_install(void* image, void* vaddr_load, uint32_t load_size) {
   } else {
     f32 out = cvt(in);
     KURIBO_LOG("RESULT: %f\n", out);
+  }
+  {
+    //auto our_module =
+    //    eastl::make_unique<kuribo::KamekModule>("Kuribo/DebugMem.kmk");
+    //if (our_module->mData == nullptr) {
+    //  KURIBO_PRINTF("[KURIBO] Failed to load module\n");
+    //} else {
+    //  kuribo::System::getSystem().mProjectManager.attachModule(
+    //      eastl::move(our_module));
+    //}
+    //kuribo::Critical q;
+    int size, rsize;
+    auto kxmodule = kuribo::io::dvd::loadFile("Kuribo/GCC.kxe", &size, &rsize);
+
+    auto kuribo_module = kuribo::makeKuriboModule(kxmodule.get(), size);
+    KURIBO_PRINTF("FINISHED\n");
+    kuribo::System::getSystem().mProjectManager.attachModule(
+        eastl::move(kuribo_module));
+    KURIBO_PRINTF("ATTACHED\n");
   }
 }
