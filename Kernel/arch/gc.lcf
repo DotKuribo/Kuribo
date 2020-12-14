@@ -14,7 +14,7 @@ SECTIONS {
 .sbss2 ALIGN(0x20):{}
 _f_bss = .;
 .bss ALIGN(0x20):{}
-
+.interp ALIGN(0x20): {}
 }
 
 
