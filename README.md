@@ -1,6 +1,9 @@
 # Kuribo
 Minecraft Forge for the Wii (WIP)
 
+## Upcoming features
+- Channel scripting, custom GUI, more..
+
 ## Objective
 Kuribo is a Wii Channel and standalone binary (for use in ROM hacks).
 Kuribo loads mods from the `mods` folder on your SD card, allowing drag-and-drop installation.
@@ -17,7 +20,7 @@ Kuribo loads mods from the `mods` folder on your SD card, allowing drag-and-drop
 Gecko codes are run through Kuribo's GeckoJIT engine. GeckoJIT is the fastest code handler, by a considerable margin:
 
 ### Runtime comparison
-Tested on the first quarter of the FKW .gct for PAL MKW. Averaged across a minute of data (3600 samples) This was necessary to support the USB Gecko codehandler, which has an extremely limited hard restriction on code length. The source code of the instrumentation code can be found [here](https://github.com/riidefi/Kuribo/blob/master/GeckoJIT/tests.cxx#L513-L554). A cheat code version is available [here](https://mkwii.com/showthread.php?tid=1673&pid=6040#pid6040), although its measurements will be a bit biased (in favor of the codehandler), as the cache will be primed when the test occurs.
+Averaged across a minute of data (3600 samples). Tested on the first quarter of the FKW .gct for PAL MKW. This was necessary to support the USB Gecko codehandler, which has an extremely limited hard restriction on code length. The source code of the instrumentation code can be found [here](https://github.com/riidefi/Kuribo/blob/master/GeckoJIT/tests.cxx#L513-L554). A cheat code version is available [here](https://mkwii.com/showthread.php?tid=1673&pid=6040#pid6040), although its measurements will be a bit biased (in favor of the codehandler), as the cache will be primed when the test occurs (as it is itself a code).
 <p align="center">
   <img src="https://raw.githubusercontent.com/riidefi/Kuribo/master/Docs/gecko_comparison.png">
 </p>
@@ -29,7 +32,7 @@ Tested on the first quarter of the FKW .gct for PAL MKW. Averaged across a minut
 ## Writing a module
 Here is an example Kuribo module. (C++)
 ```cpp
-# Make sure to add the /sdk/ folder to your include path
+// Make sure to add the /sdk/ folder to your include path
 #include "kuribo_sdk.h"
 
 KURIBO_MODULE_BEGIN("DemoModule", "riidefi", "Beta")
@@ -54,7 +57,7 @@ When we launch the game, we see:
 [OSREPORT]:          Built:    	Dec 11 2020 at 13:27:54
 [OSREPORT]:          Compiler: 	GCC 10.2.0
 [OSREPORT]: ~~~~~~~~~~~~~~~~~~~~~~~
-[OSREPORT]: Loading Kuribo.Test.GCC!
+[OSREPORT]: Loading DemoModule!
 ```
 
 ### Patching game functions
@@ -62,11 +65,12 @@ Between our MODULE_BEGIN and MODULE_END block, we have the following APIs:
 - KURIBO_PATCH_B(addr, value)
 - KURIBO_PATCH_BL(addr, value)
 - KURIBO_PATCH_32(addr, value)
+
 Example:
 ```cpp
 #include "kuribo_sdk.h"
 
-static void MyGetBMGID(u32 TrackID) {
+static void MyGetBMGID(u32 /*track_id*/) {
 	return 0x245C;
 }
 
@@ -75,7 +79,7 @@ KURIBO_MODULE_BEGIN("DemoModule", "riidefi", "Beta")
 	KURIBO_EXECUTE_ON_LOAD { OSReport("Loading DemoModule\n"); }
 	KURIBO_EXECUTE_ON_UNLOAD { OSReport("Unloading DemoModule!\n"); }
 
-	KURIBO_PATCH_B(0x80833668, MyGetDriverName);
+	KURIBO_PATCH_B(0x80833668, MyGetBMGID);
 }
 KURIBO_MODULE_END();
 ```
@@ -94,7 +98,7 @@ KURIBO_MODULE_END();
 ```
 
 ### Sharing functions across modules:
-By using KURIO_EXPORT, functions from one module can be made available to others. 
+By using KURIBO_EXPORT, functions from one module can be made available to others. 
 ```cpp
 KURIBO_EXPORT(MyFunction);
 ```
