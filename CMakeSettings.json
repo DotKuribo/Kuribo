@@ -35,7 +35,7 @@
             "ctestCommandArgs": "",
             "inheritEnvironments": [],
             "variables": [],
-            "cmakeToolchain": "../Targets/WiiClangDebug.cmake"
+            "cmakeToolchain": "./Targets/WiiClangDebug.cmake"
         },
         {
             "name": "Wii-Clang-Release",
@@ -48,7 +48,33 @@
             "ctestCommandArgs": "",
             "inheritEnvironments": [],
             "variables": [],
-            "cmakeToolchain": "../Targets/WiiClangRelease.cmake"
+            "cmakeToolchain": "./Targets/WiiClangRelease.cmake"
+        },
+        {
+            "name": "Wii-GCC-Debug",
+            "generator": "Ninja",
+            "configurationType": "Debug",
+            "buildRoot": "${projectDir}\\out\\build\\${name}",
+            "installRoot": "${projectDir}\\out\\install\\${name}",
+            "cmakeCommandArgs": "-DKURIBO_BUILD_WII=1",
+            "buildCommandArgs": "",
+            "ctestCommandArgs": "",
+            "inheritEnvironments": [],
+            "variables": [],
+            "cmakeToolchain": "./Targets/WiiGCC.cmake"
+        },
+        {
+            "name": "Wii-GCC-Release",
+            "generator": "Ninja",
+            "configurationType": "RelWithDebInfo",
+            "buildRoot": "${projectDir}\\out\\build\\${name}",
+            "installRoot": "${projectDir}\\out\\install\\${name}",
+            "cmakeCommandArgs": "-DKURIBO_BUILD_WII=1",
+            "buildCommandArgs": "",
+            "ctestCommandArgs": "",
+            "inheritEnvironments": [],
+            "variables": [],
+            "cmakeToolchain": "./Targets/WiiGCC.cmake"
         }
     ]
 }

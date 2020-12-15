@@ -5,15 +5,7 @@ project ("KuriboKernel")
 set(CMAKE_CXX_STANDARD 20)
 
 add_executable (KuriboKernel
-	"source/api/HostInterop.h"
-	"source/api/Module.h"
-	"source/common.h"
-	"source/config.h"
-	"source/core/patch.hxx"
-	"source/core/sync.hxx"
-	"source/debug.h"
-	"source/debug/assert.h"
-	"source/debug/log.h"
+	
 	"source/io/filesystem.hxx"
 	"source/io/io.hxx"
 	"source/jit/allocator/frame.hpp"
@@ -40,10 +32,6 @@ add_executable (KuriboKernel
 	"source/system/memory/xalloc/SinglyLinkedListImpl.h"
 	"source/system/memory/xalloc/Utils.h"
 	"source/system/system.hxx"
-	"source/types.h"
-	"source/util/crc.hxx"
-	"source/util/deferred.hxx"
-	"source/util/json.hxx"
 	"source/vendor/EABase/config/eacompiler.h"
 	"source/vendor/EABase/config/eacompilertraits.h"
 	"source/vendor/EABase/config/eaplatform.h"
@@ -181,7 +169,6 @@ add_executable (KuriboKernel
 	"source/vendor/imstb_textedit.h"
 	"source/vendor/imstb_truetype.h"
 	"source/vendor/smol_json.hxx"
-	"source/debug/kassert.cxx"
 	"source/entry.cxx"
 	"source/io/filesystem.cxx"
 	"source/jit/engine/compiler.cxx"
@@ -209,13 +196,15 @@ add_executable (KuriboKernel
 	"source/vendor/libc.c"
 )
 
-target_include_directories(KuriboKernel PRIVATE "source" "source/vendor" "../" "../sdk")
+target_include_directories(KuriboKernel PRIVATE "source" "source/vendor" "../" "../sdk" "../Common")
+
+include_directories(${PROJECT_SOURCE_DIR}/../Common)
 
 if (KURIBO_BUILD_WII)
 	set(KERNEL_LINK, " -Wl,--script=${CMAKE_SOURCE_DIR}/arch/gc.lcf ")
 
-	set(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} -Wl,--script=${CMAKE_SOURCE_DIR}/arch/gc.lcf ")
-	set(CMAKE_CXX_LINK_FLAGS "${CMAKE_CXX_LINK_FLAGS} -Wl,--script=${CMAKE_SOURCE_DIR}/arch/gc.lcf ")
+	set(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} -Wl,--script=${CMAKE_SOURCE_DIR}/Kernel/arch/gc.lcf ")
+	set(CMAKE_CXX_LINK_FLAGS "${CMAKE_CXX_LINK_FLAGS} -Wl,--script=${CMAKE_SOURCE_DIR}/Kernel/arch/gc.lcf ")
 
 
 	set(KERNEL_COMPILE "-fsanitize=cfi -fvisibility=hidden")
@@ -223,7 +212,7 @@ if (KURIBO_BUILD_WII)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${KERNEL_COMPILE}")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${KERNEL_COMPILE}")
 
-	target_link_libraries(KuriboKernel "${CMAKE_SOURCE_DIR}/../Targets/libKuriboClang.a")
+	target_link_libraries(KuriboKernel Common "${CMAKE_SOURCE_DIR}/Targets/libKuriboClang.a")
 
 	add_custom_target(${PROJECT_NAME}.bin ALL DEPENDS ${PROJECT_NAME})
 	add_custom_command(
@@ -241,4 +230,8 @@ if (KURIBO_BUILD_WII)
 	else()
 		message("Deploy path is not set")
 	endif()
+else()
+	target_link_libraries(KuriboKernel PUBLIC
+		Common
+	)
 endif()

@@ -4,9 +4,9 @@
 #include <limits>            /* limits_max */
 #include <stdlib.h>          /* malloc, free */
 
-#include "../../../config.h"
-#include "../../../debug.h"
-#include "../../../types.h"
+#include "config.h"
+#include "debug.h"
+#include "types.h"
 
 #ifdef _WIN32
 #include <stdio.h>
