@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.h"
+#include "system/memory.hxx"
 
 #include <EASTL/string_view.h>
 

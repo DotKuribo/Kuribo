@@ -19,7 +19,7 @@
 #include <io/filesystem.hxx>
 #include <io/io.hxx>
 
-#include <jit/engine/compiler.hpp>
+#include "GeckoJIT/engine/compiler.hpp"
 
 #include <modules/SymbolManager.hxx>
 #include <modules/kamek/Module.hxx>

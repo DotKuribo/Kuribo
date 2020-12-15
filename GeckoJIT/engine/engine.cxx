@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <vendor/EASTL/algorithm.h>
 
 namespace gecko_jit {
 

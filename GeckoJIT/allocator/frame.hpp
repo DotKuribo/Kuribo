@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.h"
+#include <stdlib.h>
 
 // We have a shrinking frame. From memory region A to B:
 // A --------- B

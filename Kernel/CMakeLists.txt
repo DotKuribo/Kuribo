@@ -8,9 +8,6 @@ add_executable (KuriboKernel
 	
 	"source/io/filesystem.hxx"
 	"source/io/io.hxx"
-	"source/jit/allocator/frame.hpp"
-	"source/jit/engine/compiler.hpp"
-	"source/jit/engine/engine.hpp"
 	"source/modules/Project.hxx"
 	"source/modules/SymbolManager.hxx"
 	"source/modules/comet/file_format.hxx"
@@ -35,9 +32,6 @@ add_executable (KuriboKernel
 	
 	"source/entry.cxx"
 	"source/io/filesystem.cxx"
-	"source/jit/engine/compiler.cxx"
-	"source/jit/engine/engine.cxx"
-	"source/jit/tests.cxx"
 	"source/modules/Project.cxx"
 	"source/modules/SymbolManager.cxx"
 	"source/modules/gecko/Frontend.cxx"
@@ -69,7 +63,7 @@ if (KURIBO_BUILD_WII)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${KERNEL_COMPILE}")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${KERNEL_COMPILE}")
 
-	target_link_libraries(KuriboKernel Common "${CMAKE_SOURCE_DIR}/Targets/libKuriboClang.a")
+	target_link_libraries(KuriboKernel Common GeckoJIT "${CMAKE_SOURCE_DIR}/Targets/libKuriboClang.a")
 
 	add_custom_target(${PROJECT_NAME}.bin ALL DEPENDS ${PROJECT_NAME})
 	add_custom_command(
@@ -90,5 +84,6 @@ if (KURIBO_BUILD_WII)
 else()
 	target_link_libraries(KuriboKernel PUBLIC
 		Common
+		GeckoJIT
 	)
 endif()

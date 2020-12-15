@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common.h"
-#include <jit/allocator/frame.hpp>
+#include "allocator/frame.hpp"
 
 namespace gecko_jit {
 

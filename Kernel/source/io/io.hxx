@@ -2,6 +2,7 @@
 
 #include "api/HostInterop.h"
 #include "common.h"
+#include "system/memory.hxx"
 
 #include <EASTL/string.h>
 #include <EASTL/unique_ptr.h>

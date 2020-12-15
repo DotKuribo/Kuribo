@@ -6,5 +6,6 @@ cmake_minimum_required (VERSION 3.8)
 project ("Kuribo")
 
 add_subdirectory(Common)
+add_subdirectory(GeckoJIT)
 
 add_subdirectory(Kernel)

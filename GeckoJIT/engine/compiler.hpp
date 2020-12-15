@@ -1,4 +1,3 @@
-// (So this file is only included once)
 #pragma once
 
 #include "common.h"
