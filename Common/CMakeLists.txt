@@ -161,6 +161,6 @@ add_library(Common
 	"vendor/EASTL/numeric_limits.cpp"
 	"vendor/EASTL/red_black_tree.cpp"
 	"vendor/EASTL/string.cpp"
-)
+ "compiler/ppc.hxx")
 
 target_include_directories(Common PUBLIC "./" "./vendor")
