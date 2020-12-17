@@ -1,5 +1,7 @@
 project(Common)
 
+set(CMAKE_CXX_STANDARD 17)
+
 add_library(Common
 	"api/HostInterop.h"
 	"api/Module.h"

@@ -4,8 +4,8 @@
 #include <limits>            /* limits_max */
 #include <stdlib.h>          /* malloc, free */
 
+#include "Common/debug.h"
 #include "config.h"
-#include "debug.h"
 #include "types.h"
 
 #ifdef _WIN32
@@ -228,7 +228,7 @@ void FreeListAllocator::PrintStats() const {
   KURIBO_PRINTF("-------\n");
   for (const Node* it = m_freeList.head; it != nullptr; it = it->next) {
     KURIBO_PRINTF("Free block: Size %u\n",
-               static_cast<u32>(it->data.blockSize));
+                  static_cast<u32>(it->data.blockSize));
   }
   KURIBO_PRINTF("-------\n");
 }

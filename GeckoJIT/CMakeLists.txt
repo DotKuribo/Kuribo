@@ -1,5 +1,7 @@
 project(GeckoJIT)
 
+set(CMAKE_CXX_STANDARD 17)
+
 add_library(GeckoJIT
 	"allocator/frame.hpp"
 	"engine/compiler.hpp"

@@ -1,5 +1,5 @@
 #include "SymbolManager.hxx"
-#include "debug.h"
+#include "Common/debug.h"
 
 namespace kuribo {
 

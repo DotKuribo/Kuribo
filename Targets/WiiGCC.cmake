@@ -48,8 +48,8 @@ INCLUDE_DIRECTORIES("${LIBOGC_INCLUDE_DIR}")
 # GameCube/Wii compiler flags.
 # Based on devkitPPC's base_rules, gamecube_rules, and wii_rules.
 ADD_DEFINITIONS(-DGEKKO)
-SET(DOL_C_FLAGS "-mogc -mcpu=750 -meabi -mhard-float")
-SET(RVL_C_FLAGS "-mrvl -mcpu=750 -meabi -mhard-float")
+SET(DOL_C_FLAGS "-mogc -mcpu=750 -meabi -mhard-float -fno-exceptions -fno-rtti -Os -DKURIBO_PLATFORM_WII=1 -D__powerpc__ -DEA_PLATFORM_LINUX -DEA_COMPILER_CPP17_ENABLED -DEA_COMPILER_CPP14_ENABLED -DEA_COMPILER_CPP11_ENABLED -DEA_HAVE_CPP11_MUTEX")
+SET(RVL_C_FLAGS "-mrvl -mcpu=750 -meabi -mhard-float -fno-exceptions -fno-rtti -Os -DKURIBO_PLATFORM_WII=1 -D__powerpc__ -DEA_PLATFORM_LINUX -DEA_COMPILER_CPP17_ENABLED -DEA_COMPILER_CPP14_ENABLED -DEA_COMPILER_CPP11_ENABLED -DEA_HAVE_CPP11_MUTEX")
 
 # Enable Wii bulids.
 SET(HW_RVL 1)

@@ -6,8 +6,8 @@ void comet_app_install(void* image_start, void* vaddr_load, uint32_t load_size);
 extern "C" int main(int image);
 
 #ifdef KURIBO_PLATFORM_WII
-extern "C" void _start(int image);
-void _start(int image) { main(image); }
+extern "C" void kxStart(int image);
+void kxStart(int image) { main(image); }
 
 extern "C" void __eabi() {}
 #endif

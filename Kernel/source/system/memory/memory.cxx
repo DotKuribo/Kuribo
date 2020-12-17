@@ -1,6 +1,6 @@
 #include "system/memory.hxx"
+#include "Common/debug.h"
 #include "config.h"
-#include "debug.h"
 #include "free_list_heap.hxx"
 #include "util/deferred.hxx"
 
@@ -25,7 +25,7 @@ DeferredInitialization<FreeListHeap> sMem1Heap, sMem2Heap;
 
 void Init(char* mem1b, u32 mem1s, char* mem2b, u32 mem2s) {
   sMem1Heap.initialize(mem1b, mem1s);
-  //sMem2Heap.initialize(mem2b, mem2s);
+  // sMem2Heap.initialize(mem2b, mem2s);
 }
 
 static bool AddRegion(void* begin, void* end,
@@ -48,8 +48,8 @@ Heap& GetHeap(GlobalHeapType type) {
   case GlobalHeapType::Default:
   case GlobalHeapType::MEM1:
     return sMem1Heap;
-  //case GlobalHeapType::MEM2:
-  //  return sMem2Heap;
+    // case GlobalHeapType::MEM2:
+    //  return sMem2Heap;
   }
 }
 

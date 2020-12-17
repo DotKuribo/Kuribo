@@ -9,7 +9,7 @@ set(triple powerpc-unknown-eabi)
 set(CMAKE_C_COMPILER_TARGET ${triple})
 set(CMAKE_CXX_COMPILER_TARGET ${triple})
 
-set(WII_DEFINES "-O1 -fno-inline -DKURIBO_PLATFORM_WII=1 -fno-exceptions -fno-rtti -fdata-sections -ffunction-sections -flto -ffast-math -fpermissive -D__powerpc__ -DEA_PLATFORM_LINUX --target=ppc-linux-eabi -mcpu=750 -DEA_COMPILER_CPP17_ENABLED -DEA_COMPILER_CPP14_ENABLED -DEA_COMPILER_CPP11_ENABLED -DEA_HAVE_CPP11_MUTEX ")
+set(WII_DEFINES "-O1 -fno-inline -DGEKKO -DKURIBO_PLATFORM_WII=1 -fno-exceptions -fno-rtti -fdata-sections -ffunction-sections -flto -ffast-math -fpermissive -D__powerpc__ -DEA_PLATFORM_LINUX --target=ppc-linux-eabi -mcpu=750 -DEA_COMPILER_CPP17_ENABLED -DEA_COMPILER_CPP14_ENABLED -DEA_COMPILER_CPP11_ENABLED -DEA_HAVE_CPP11_MUTEX ")
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${WII_DEFINES}")
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} ${WII_DEFINES}")

@@ -1,4 +1,4 @@
-ENTRY(_start)
+ENTRY(kxStart)
 
 SECTIONS {
 . = 0x808ee920;

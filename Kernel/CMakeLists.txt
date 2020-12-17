@@ -47,7 +47,7 @@ add_executable (KuriboKernel
 	"source/vendor/libc.c"
 )
 
-target_include_directories(KuriboKernel PRIVATE "source" "source/vendor" "../" "../sdk" "../Common")
+target_include_directories(KuriboKernel PRIVATE "source" "source/vendor" "../" "../sdk" "../Common" "../Common/vendor")
 
 include_directories(${PROJECT_SOURCE_DIR}/../Common)
 
@@ -57,13 +57,21 @@ if (KURIBO_BUILD_WII)
 	set(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} -Wl,--script=${CMAKE_SOURCE_DIR}/Kernel/arch/gc.lcf ")
 	set(CMAKE_CXX_LINK_FLAGS "${CMAKE_CXX_LINK_FLAGS} -Wl,--script=${CMAKE_SOURCE_DIR}/Kernel/arch/gc.lcf ")
 
+	if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+		set(KERNEL_COMPILE "-fsanitize=cfi -fvisibility=hidden")
 
-	set(KERNEL_COMPILE "-fsanitize=cfi -fvisibility=hidden")
+		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${KERNEL_COMPILE}")
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${KERNEL_COMPILE}")
 
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${KERNEL_COMPILE}")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${KERNEL_COMPILE}")
+		target_link_libraries(KuriboKernel Common GeckoJIT "${CMAKE_SOURCE_DIR}/Targets/libKuriboClang.a")
+	else()
+		set(KERNEL_COMPILE "-Wno-multichar")
 
-	target_link_libraries(KuriboKernel Common GeckoJIT "${CMAKE_SOURCE_DIR}/Targets/libKuriboClang.a")
+		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${KERNEL_COMPILE}")
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${KERNEL_COMPILE}")
+
+		target_link_libraries(KuriboKernel Common GeckoJIT)
+	endif()
 
 	add_custom_target(${PROJECT_NAME}.bin ALL DEPENDS ${PROJECT_NAME})
 	add_custom_command(

@@ -1,7 +1,7 @@
 #pragma once
 
+#include "Common/debug.h"
 #include "config.h"
-#include "debug.h"
 #include "memory/heap.hxx"
 #include "memory/stack_alloc.hxx"
 #include "types.h"
@@ -12,7 +12,7 @@ namespace mem {
 enum class GlobalHeapType {
   Default, // Decide between MEM1 and MEM2
   MEM1,
-  MEM2=MEM1
+  MEM2 = MEM1
 };
 
 void Init(char* mem1b, u32 mem1s, char* mem2b, u32 mem2s);
