@@ -2,9 +2,9 @@
 
 #include "Common/debug.h"
 #include "config.h"
-#include "memory/heap.hxx"
 #include "memory/stack_alloc.hxx"
 #include "types.h"
+#include <memory/heap.hxx>
 
 namespace kuribo {
 namespace mem {

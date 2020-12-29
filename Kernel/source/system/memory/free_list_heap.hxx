@@ -1,7 +1,7 @@
 #pragma once
 
-#include "heap.hxx"
 #include "xalloc/FreeListAllocator.h"
+#include <memory/heap.hxx>
 
 namespace kuribo::mem {
 

@@ -43,8 +43,6 @@ public:
 private:
   AbortHandler mAbortHandler = DefaultAbortHandler;
 
-public:
-  ProjectManager mProjectManager;
 
 public:
   System();

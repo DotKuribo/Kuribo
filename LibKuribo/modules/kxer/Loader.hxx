@@ -10,7 +10,7 @@ struct LoadParam {
   eastl::string_view binary;
   mem::Heap* heap = nullptr;
   void** prologueCb = nullptr;
-  eastl::unique_ptr<u8[]>* textCb;
+  mem::unique_ptr<u8[]>* textCb;
 };
 
 enum class LoadResult {

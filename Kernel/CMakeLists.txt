@@ -8,20 +8,12 @@ add_executable (KuriboKernel
 	
 	"source/io/filesystem.hxx"
 	"source/io/io.hxx"
-	"source/modules/Project.hxx"
-	"source/modules/SymbolManager.hxx"
-	"source/modules/comet/file_format.hxx"
-	"source/modules/gecko/CodePrinter.hxx"
-	"source/modules/gecko/Frontend.hxx"
 	"source/modules/kamek/Loader.hxx"
 	"source/modules/kamek/Module.hxx"
 	"source/modules/kamek/kamek.h"
-	"source/modules/kxer/Binary.hxx"
-	"source/modules/kxer/Loader.hxx"
-	"source/modules/kxer/Module.hxx"
 	"source/system/memory.hxx"
 	"source/system/memory/free_list_heap.hxx"
-	"source/system/memory/heap.hxx"
+	"../Common/memory/heap.hxx"
 	"source/system/memory/stack_alloc.hxx"
 	"source/system/memory/xalloc/Allocator.h"
 	"source/system/memory/xalloc/FreeListAllocator.h"
@@ -32,12 +24,8 @@ add_executable (KuriboKernel
 	
 	"source/entry.cxx"
 	"source/io/filesystem.cxx"
-	"source/modules/Project.cxx"
-	"source/modules/SymbolManager.cxx"
 	"source/modules/gecko/Frontend.cxx"
 	"source/modules/kamek/Loader.cxx"
-	"source/modules/kxer/Loader.cxx"
-	"source/modules/kxer/Module.cxx"
 	"source/platform.cxx"
 	"source/system/memory/memory.cxx"
 	"source/system/memory/xalloc/FreeListAllocator.cxx"
@@ -47,7 +35,7 @@ add_executable (KuriboKernel
 	"source/vendor/libc.c"
 )
 
-target_include_directories(KuriboKernel PRIVATE "source" "source/vendor" "../" "../sdk" "../Common" "../Common/vendor")
+target_include_directories(KuriboKernel PRIVATE "source" "source/vendor" "../" "../sdk" "../Common" "../Common/vendor" "../LibKuribo")
 
 include_directories(${PROJECT_SOURCE_DIR}/../Common)
 
@@ -70,7 +58,7 @@ if (KURIBO_BUILD_WII)
 		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${KERNEL_COMPILE}")
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${KERNEL_COMPILE}")
 
-		target_link_libraries(KuriboKernel Common GeckoJIT)
+		target_link_libraries(KuriboKernel Common GeckoJIT LibKuribo)
 	endif()
 
 	add_custom_target(${PROJECT_NAME}.bin ALL DEPENDS ${PROJECT_NAME})
@@ -93,5 +81,6 @@ else()
 	target_link_libraries(KuriboKernel PUBLIC
 		Common
 		GeckoJIT
+		LibKuribo
 	)
 endif()

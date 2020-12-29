@@ -110,15 +110,11 @@ void comet_app_install(void* image, void* vaddr_load, uint32_t load_size) {
   kuribo::kxRegisterProcedure("OSReport", FFI_NAME(os_report));
   kuribo::kxRegisterProcedure("kxGeckoJitCompileCodes",
                               (u32)&kuribo::kxGeckoJitCompileCodes);
-  KURIBO_LOG("ADDR OF PROJMGR: %p\n",
-             &kuribo::System::getSystem().mProjectManager);
   auto our_module =
       eastl::make_unique<kuribo::KamekModule>("Kuribo/TestModule.kmk");
   if (our_module->mData == nullptr) {
     KURIBO_PRINTF("[KURIBO] Failed to load module\n");
   } else {
-    kuribo::System::getSystem().mProjectManager.attachModule(
-        eastl::move(our_module));
   }
   typedef f32 (*kxU32toF32_t)(u32);
   u32 in = 50;
@@ -142,10 +138,9 @@ void comet_app_install(void* image, void* vaddr_load, uint32_t load_size) {
     int size, rsize;
     auto kxmodule = kuribo::io::dvd::loadFile("Kuribo/GCC.kxe", &size, &rsize);
 
-    auto kuribo_module = kuribo::makeKuriboModule(kxmodule.get(), size);
+    kuribo::KuriboModule module(kxmodule.get(), size,
+                                &kuribo::mem::GetDefaultHeap());
     KURIBO_PRINTF("FINISHED\n");
-    kuribo::System::getSystem().mProjectManager.attachModule(
-        eastl::move(kuribo_module));
-    KURIBO_PRINTF("ATTACHED\n");
+    
   }
 }

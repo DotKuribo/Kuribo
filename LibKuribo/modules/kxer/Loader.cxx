@@ -5,7 +5,7 @@
 
 namespace kuribo::kxer {
 
-static inline eastl::unique_ptr<u8[]>
+static inline mem::unique_ptr<u8[]>
 decompressSection(const LoadParam& param, u32 file_size,
                   const kx::bin::Header& header,
                   const kx::bin::Section& section, u32* sizeCb = nullptr) {
@@ -14,8 +14,8 @@ decompressSection(const LoadParam& param, u32 file_size,
     return nullptr;
   }
 
-  auto pBuf = eastl::unique_ptr<u8[]>(new (param.heap, section.alignment)
-                                          u8[section.file_size]);
+  auto pBuf = mem::unique_ptr<u8[]>(
+      new (param.heap, section.alignment) u8[section.file_size], param.heap);
 
   if (pBuf == nullptr) {
     KURIBO_LOG("Failed to allocate memory\n");
@@ -63,7 +63,8 @@ handleRelocation(const kx::bin::Relocation* reloc, u8* pCode, u8* pImports,
 
   u32 source;
   if (reloc->source_section == 0) {
-    source = reinterpret_cast<u32>(pCode) + reloc->source_offset + reloc->source_addend;
+    source = reinterpret_cast<u32>(pCode) + reloc->source_offset +
+             reloc->source_addend;
   } else if (reloc->source_section == 0xFF) {
     if (pImports == nullptr) {
       KURIBO_LOG("Imports section doesn't exist, but is referenced\n");
@@ -192,7 +193,7 @@ LoadResult Load(const LoadParam& param) {
   // Unverified: file_size
   // Unused: flags
 
-  eastl::unique_ptr<u8[]> pCode =
+  mem::unique_ptr<u8[]> pCode =
       decompressSection(param, param.binary.size(), *pHeader, pHeader->code);
   if (pCode == nullptr) {
     KURIBO_LOG("Code section does not exist\n");
@@ -200,14 +201,14 @@ LoadResult Load(const LoadParam& param) {
   }
 
   u32 reloc_size = 0;
-  eastl::unique_ptr<u8[]> pRelocs = decompressSection(
+  mem::unique_ptr<u8[]> pRelocs = decompressSection(
       param, param.binary.size(), *pHeader, pHeader->relocations, &reloc_size);
   if (pRelocs == nullptr) {
     KURIBO_LOG("Relocation section does not exist\n");
     return LoadResult::InvalidFile;
   }
 
-  eastl::unique_ptr<u8[]> pImports = nullptr;
+  mem::unique_ptr<u8[]> pImports = nullptr;
 
   if (pHeader->imports.file_size != 0) {
     auto _imports = decompressSection(param, param.binary.size(), *pHeader,
@@ -225,7 +226,7 @@ LoadResult Load(const LoadParam& param) {
 
   if (result != LoadResult::Success)
     return result;
-  
+
   if (param.prologueCb != nullptr) {
     *param.prologueCb = pCode.get() + pHeader->entry_point_offset;
   }
