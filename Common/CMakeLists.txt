@@ -17,6 +17,7 @@ add_library(Common
 	"util/deferred.hxx"
 	"util/json.hxx"
 	"debug/kassert.cxx"
+	"memory/heap.hxx"
 
 	# smol_json
 	"vendor/smol_json.hxx"
@@ -161,6 +162,6 @@ add_library(Common
 	"vendor/EASTL/numeric_limits.cpp"
 	"vendor/EASTL/red_black_tree.cpp"
 	"vendor/EASTL/string.cpp"
- "compiler/ppc.hxx")
+ "compiler/ppc.hxx" "security/Canary.hxx")
 
 target_include_directories(Common PUBLIC "./" "./vendor")
