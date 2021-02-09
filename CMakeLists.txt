@@ -7,5 +7,5 @@ project ("Kuribo")
 
 add_subdirectory(Common)
 add_subdirectory(GeckoJIT)
-
+add_subdirectory(LibKuribo)
 add_subdirectory(Kernel)

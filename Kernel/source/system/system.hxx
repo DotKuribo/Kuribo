@@ -1,5 +1,6 @@
 #pragma once
 
+#include <EASTL/string_view.h>
 #include <EASTL/unique_ptr.h>
 
 #include "config.h"
@@ -11,6 +12,7 @@
 #include "util/deferred.hxx"
 
 #include "modules/Project.hxx"
+#include "system/memory.hxx"
 
 namespace kuribo {
 
@@ -27,7 +29,9 @@ public:
     KURIBO_ASSERT(sInstance);
     return *sInstance;
   }
-  static void createSystem() { sInstance = new (&mem::GetHeap(mem::GlobalHeapType::MEM2), 32) System(); }
+  static void createSystem() {
+    sInstance = new (&mem::GetHeap(mem::GlobalHeapType::MEM2), 32) System();
+  }
   static void destroySystem() { delete sInstance; }
 
   inline void abort(const char* reason) {
@@ -42,7 +46,6 @@ public:
 
 private:
   AbortHandler mAbortHandler = DefaultAbortHandler;
-
 
 public:
   System();

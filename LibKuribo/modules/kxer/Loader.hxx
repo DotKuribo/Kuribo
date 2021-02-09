@@ -1,8 +1,8 @@
 #pragma once
 
 #include <EASTL/string_view.h>
+#include <memory/heap.hxx>
 #include <modules/kxer/Binary.hxx>
-#include <system/memory.hxx>
 
 namespace kuribo::kxer {
 
@@ -10,7 +10,7 @@ struct LoadParam {
   eastl::string_view binary;
   mem::Heap* heap = nullptr;
   void** prologueCb = nullptr;
-  mem::unique_ptr<u8[]>* textCb;
+  mem::unique_ptr<u8>* textCb;
 };
 
 enum class LoadResult {

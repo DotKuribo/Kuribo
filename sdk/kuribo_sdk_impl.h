@@ -1,8 +1,8 @@
 #ifndef __KURIBO_SDK_IMPL
 #define __KURIBO_SDK_IMPL
 
-#include <kuribo_sdk/kuribo_types.h>
-#include <kuribo_sdk/kuribo_internal_api.h>
+#include "kuribo_sdk/kuribo_types.h"
+#include "kuribo_sdk/kuribo_internal_api.h"
 
 
 /* @brief Fillin a simple metadata structure for a

@@ -1,19 +1,17 @@
 #include "Project.hxx"
-#include "io/io.hxx"
 #include "modules/SymbolManager.hxx"
 
 namespace kuribo {
 
-ModuleInstance::ModuleInstance(mem::shared_ptr<IModule> m)
+ModuleInstance::ModuleInstance(mem::unique_ptr<IModule> m)
     : pModule(eastl::move(m)) {
   configure();
 
   {
     CanaryObject<__kuribo_simple_meta_v0> meta;
-    mInterop.udata.fillin_meta = &meta.get();
+    mInterop->udata.fillin_meta = &meta.get();
 
-    if (moduleCall(KURIBO_REASON_INQUIRE_META_DESC, &mInterop) &&
-        meta.valid()) {
+    if (moduleCall(KURIBO_REASON_INQUIRE_META_DESC) && meta.valid()) {
       KURIBO_PRINTF("~~~~~~~~~~~~~~~~~~~~~~~\n");
       KURIBO_PRINTF("[KURIBO] Loading module\n");
       KURIBO_PRINTF("         Name:     \t%s\n", meta->module_name);
@@ -27,8 +25,8 @@ ModuleInstance::ModuleInstance(mem::shared_ptr<IModule> m)
       KURIBO_PRINTF("..Failed to inquire module info.\n");
     }
   }
-  
-  mInterop.udata.fillin_meta = nullptr;
+
+  mInterop->udata.fillin_meta = nullptr;
 
   attach();
 }
@@ -37,16 +35,16 @@ ModuleInstance::~ModuleInstance() {
   detach();
 }
 bool ModuleInstance::configured() const {
-  return mInterop.register_procedure != nullptr;
+  return mInterop->register_procedure != nullptr;
 }
 bool ModuleInstance::configure() {
   // Check if already configured
   if (configured())
     return false;
 
-  mInterop.core_version = KURIBO_CORE_VERSION;
-  mInterop.register_procedure = kxRegisterProcedure;
-  mInterop.get_procedure = kxGetProcedure;
+  mInterop->core_version = KURIBO_CORE_VERSION;
+  mInterop->register_procedure = kxRegisterProcedure;
+  mInterop->get_procedure = kxGetProcedure;
   return true;
 }
 
@@ -63,7 +61,7 @@ bool ModuleInstance::reload() {
   return detach() && attach();
 }
 // When loading a new version
-bool ModuleInstance::transitionTo(mem::shared_ptr<IModule> pOther) {
+bool ModuleInstance::transitionTo(mem::unique_ptr<IModule> pOther) {
   if (!configured())
     return false;
 
@@ -80,7 +78,7 @@ bool ModuleInstance::moduleCall(__KReason t) {
     return false;
 
   KURIBO_SCOPED_LOG("Calling module prologue");
-  pModule->prologue(t, &mInterop.get());
+  pModule.get()->prologue(t, &mInterop.get());
   mInterop.check();
   return true;
 }

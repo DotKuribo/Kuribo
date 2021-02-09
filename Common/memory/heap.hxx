@@ -44,13 +44,18 @@ template <typename TObject, typename TDeleter = default_delete<TObject>>
 struct unique_ptr {
   TObject* mObj = nullptr;
   Heap* mHeap = nullptr;
-  TDeleter mDeleter;
+  TDeleter mDeleter{};
 
+  unique_ptr() = default;
+  unique_ptr(std::nullptr_t) : mObj(nullptr), mHeap(nullptr) {}
   unique_ptr(TObject* obj, Heap* heap) : mObj(obj), mHeap(heap) {}
   ~unique_ptr() { reset(); }
 
   unique_ptr(const unique_ptr&) = delete;
-  unique_ptr(unique_ptr&& rhs) : mObj(rhs.mObj), mHeap(rhs.mHeap) {
+  unique_ptr(unique_ptr&& rhs) {
+    reset();
+    mObj = rhs.mObj;
+    mHeap = rhs.mHeap;
     rhs.mObj = nullptr;
   }
 
@@ -61,13 +66,33 @@ struct unique_ptr {
     mObj = nullptr;
   }
 
+  unique_ptr& operator=(unique_ptr&& rhs) {
+    reset();
+    mObj = rhs.mObj;
+    mHeap = rhs.mHeap;
+    rhs.mObj = nullptr;
+  }
+
   TObject* get() { return mObj; }
   const TObject* get() const { return mObj; }
 
   TObject& operator->() { return *mObj; }
   const TObject& operator->() const { return *mObj; }
+
+  operator bool() const { return mObj != nullptr; }
 };
 
+template <typename T, typename... Args>
+inline unique_ptr<T, default_delete<T>> make_unique(Heap& heap, u32 align = 8,
+                                                    Args... args) {
+  return {new (&heap, align) T(args...)), &heap};
+}
+template <typename T, typename... Args>
+inline unique_ptr<T, default_delete<T>> make_unique(Heap& heap, u32 align = 8) {
+  return {new (&heap, align) T()), &heap};
+}
+
+#if 0
 template <typename TObject, bool ThreadSafe = true,
           typename TDeleter = default_delete<TObject>>
 class shared_ptr {
@@ -82,7 +107,7 @@ class shared_ptr {
 
   ~shared_ptr() {
     mControl->mControl.decrement();
-    if (mControl->mControl.isUnused()) {
+    if (mControl.mControl->isUnused()) {
       mDeleter(mObj, mHeap);
     }
   }
@@ -90,14 +115,14 @@ class shared_ptr {
   TObject* get() { return mObj; }
   const TObject* get() const { return mObj; }
 
-  TObject& operator->() { return *mObj; }
-  const TObject& operator->() const { return *mObj; }
+  TObject* operator->() { return mObj; }
+  const TObject* operator->() const { return mObj; }
 
 public:
   struct Control {
     mutable int mRef = 0;
 
-    void adjust(int offset) {
+    void adjust(int offset) const {
       if constexpr (ThreadSafe) {
         Critical g;
         mRef += offset;
@@ -132,5 +157,6 @@ private:
   Heap* mHeap = nullptr;
   TDeleter mDeleter;
 };
+#endif
 
 } // namespace kuribo::mem

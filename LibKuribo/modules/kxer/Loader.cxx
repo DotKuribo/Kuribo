@@ -5,7 +5,7 @@
 
 namespace kuribo::kxer {
 
-static inline mem::unique_ptr<u8[]>
+static inline mem::unique_ptr<u8>
 decompressSection(const LoadParam& param, u32 file_size,
                   const kx::bin::Header& header,
                   const kx::bin::Section& section, u32* sizeCb = nullptr) {
@@ -14,10 +14,10 @@ decompressSection(const LoadParam& param, u32 file_size,
     return nullptr;
   }
 
-  auto pBuf = mem::unique_ptr<u8[]>(
-      new (param.heap, section.alignment) u8[section.file_size], param.heap);
+  auto* _buf = new (*param.heap, section.alignment) u8[section.file_size];
+  auto pBuf = mem::unique_ptr<u8>(_buf, param.heap);
 
-  if (pBuf == nullptr) {
+  if (!pBuf) {
     KURIBO_LOG("Failed to allocate memory\n");
     return nullptr;
   }
@@ -193,27 +193,27 @@ LoadResult Load(const LoadParam& param) {
   // Unverified: file_size
   // Unused: flags
 
-  mem::unique_ptr<u8[]> pCode =
+  mem::unique_ptr<u8> pCode =
       decompressSection(param, param.binary.size(), *pHeader, pHeader->code);
-  if (pCode == nullptr) {
+  if (!pCode) {
     KURIBO_LOG("Code section does not exist\n");
     return LoadResult::InvalidFile;
   }
 
   u32 reloc_size = 0;
-  mem::unique_ptr<u8[]> pRelocs = decompressSection(
+  mem::unique_ptr<u8> pRelocs = decompressSection(
       param, param.binary.size(), *pHeader, pHeader->relocations, &reloc_size);
-  if (pRelocs == nullptr) {
+  if (!pRelocs) {
     KURIBO_LOG("Relocation section does not exist\n");
     return LoadResult::InvalidFile;
   }
 
-  mem::unique_ptr<u8[]> pImports = nullptr;
+  mem::unique_ptr<u8> pImports = nullptr;
 
   if (pHeader->imports.file_size != 0) {
     auto _imports = decompressSection(param, param.binary.size(), *pHeader,
                                       pHeader->imports);
-    if (_imports == nullptr) {
+    if (!_imports) {
       return LoadResult::InvalidFile;
     }
 

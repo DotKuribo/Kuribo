@@ -2,12 +2,9 @@
 #include "modules/Project.hxx"
 #include "modules/kxer/Loader.hxx"
 
-#include "../SymbolManager.cxx"
-
 namespace kuribo {
 
-inline KuriboModule::KuriboModule(const u8* buf, const u32 size,
-                                  mem::heap* heap) {
+KuriboModule::KuriboModule(const u8* buf, const u32 size, mem::Heap* heap) {
 #ifdef _WIN32
   return;
 #endif
@@ -49,7 +46,7 @@ inline KuriboModule::KuriboModule(const u8* buf, const u32 size,
   KURIBO_ASSERT(mPrologue);
 }
 
-inline int KuriboModule::prologue(int type, __kuribo_module_ctx_t* interop) {
+int KuriboModule::prologue(int type, __kuribo_module_ctx_t* interop) {
   if (mPrologue == nullptr)
     return KURIBO_EXIT_FAILURE;
 

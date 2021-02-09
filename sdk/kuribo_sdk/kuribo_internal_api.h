@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <kuribo_sdk/kuribo_types.h>
+#include "kuribo_sdk/kuribo_types.h"
 
 /* Compatible kernel-api version */
 #define KURIBO_CORE_VERSION 0

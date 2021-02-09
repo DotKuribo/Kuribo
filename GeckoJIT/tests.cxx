@@ -1,12 +1,12 @@
 #define KURIBO_ENABLE_LOG
 
 #include <array>
-#include <jit/engine/compiler.hpp>
+#include <engine/compiler.hpp>
 
 #include <EASTL/vector.h>
 #include <debug/log.h>
 
-#include <system/memory.hxx>
+#include <memory/heap.hxx>
 
 #include <core/patch.hxx>
 #include <core/sync.hxx>
@@ -559,8 +559,7 @@ void GeckoJIT_RunTests() {
   {
     KURIBO_SCOPED_LOG("Allocating block");
 
-    pSimulatedHeap = (u8*)kuribo::mem::Alloc(simulatedHeapSize,
-                                             kuribo::mem::GetDefaultHeap(), 8);
+    pSimulatedHeap = new u8[simulatedHeapSize];
   }
 
   {
@@ -603,8 +602,8 @@ void GeckoJIT_RunTests() {
       auto leftover = engine.computeRemaining();
       const auto size = reinterpret_cast<char*>(leftover.end) -
                         reinterpret_cast<char*>(leftover.begin);
-      
-      kuribo::mem::AddRegion(leftover.begin, size, false);
+
+      // kuribo::mem::AddRegion(leftover.begin, size, false);
     }
   }
 

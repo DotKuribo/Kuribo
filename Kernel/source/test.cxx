@@ -82,22 +82,28 @@ void CodeParser() {
 }
 } // namespace tests
 
-//eastl::array<char, 1024 * 4 * 64> heap;
+// eastl::array<char, 1024 * 4 * 64> heap;
 void comet_app_install(void* image, void* vaddr_load, uint32_t load_size) {
   KURIBO_SCOPED_LOG("Installing...");
 
-//  heap = {};
-//#ifndef _WIN32
-//  for (int i = 0; i < heap.size(); i += 32)
-//    kuribo::flushAddr(&heap[0] + i);
-//#endif
-//  heap = {};
+  //  heap = {};
+  //#ifndef _WIN32
+  //  for (int i = 0; i < heap.size(); i += 32)
+  //    kuribo::flushAddr(&heap[0] + i);
+  //#endif
+  //  heap = {};
 
   // kuribo::directBranchEx((void*)0x80102021, (void*)0x80402010, true);
-  kuribo::mem::Init((char*)0x8042EB00 + 16 * 1024, 923'448 - 2048 - 16 * 1024,
-                    nullptr,
-                    0);
-  //kuribo::mem::AddRegion((void*)0x8042EB00, 923448, false);
+  char* base_addr = (char*)0x8042EB00 + 16 * 1024;
+  constexpr u32 size = 923'448 - 2048 - 16 * 1024;
+
+#ifdef _WIN32
+  static char GLOBAL_HEAP[size];
+  base_addr = &GLOBAL_HEAP[0];
+#endif
+
+  kuribo::mem::Init(base_addr, size, nullptr, 0);
+  // kuribo::mem::AddRegion((void*)0x8042EB00, 923448, false);
 
   // tests::CodeJIT();
   // tests::CodeParser();
@@ -126,21 +132,20 @@ void comet_app_install(void* image, void* vaddr_load, uint32_t load_size) {
     KURIBO_LOG("RESULT: %f\n", out);
   }
   {
-    //auto our_module =
+    // auto our_module =
     //    eastl::make_unique<kuribo::KamekModule>("Kuribo/DebugMem.kmk");
-    //if (our_module->mData == nullptr) {
+    // if (our_module->mData == nullptr) {
     //  KURIBO_PRINTF("[KURIBO] Failed to load module\n");
     //} else {
     //  kuribo::System::getSystem().mProjectManager.attachModule(
     //      eastl::move(our_module));
     //}
-    //kuribo::Critical q;
+    // kuribo::Critical q;
     int size, rsize;
     auto kxmodule = kuribo::io::dvd::loadFile("Kuribo/GCC.kxe", &size, &rsize);
 
     kuribo::KuriboModule module(kxmodule.get(), size,
                                 &kuribo::mem::GetDefaultHeap());
     KURIBO_PRINTF("FINISHED\n");
-    
   }
 }

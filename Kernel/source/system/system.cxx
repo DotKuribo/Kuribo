@@ -1,4 +1,5 @@
 #include "system.hxx"
+#include <EASTL/string.h>
 #include <io/filesystem.hxx>
 
 namespace kuribo {
@@ -20,6 +21,7 @@ System::System() {
 }
 
 bool System::loadCodeTextFile(const eastl::string_view path) {
+#if 0
   KURIBO_SCOPED_LOG("Loading file from disc...");
 
   eastl::string allocstr{path.data(), path.size()};
@@ -30,6 +32,9 @@ bool System::loadCodeTextFile(const eastl::string_view path) {
     KURIBO_LOG("Error: Cannot load file..\n");
     return false;
   }
+#else
+  return false;
+#endif
   // Construct a lexical parser.
   // kuribo::gecko::CodeParser parser{ eastl::string_view { str } };
 

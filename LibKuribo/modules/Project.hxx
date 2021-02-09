@@ -2,7 +2,6 @@
 
 #include "api/Module.h"
 #include "config.h"
-#include "io/io.hxx"
 #include "types.h"
 #include <EASTL/memory.h>
 #include <EASTL/vector.h>
@@ -20,10 +19,10 @@ public:
 
 // A module may never be freed
 struct ModuleInstance final {
-  ModuleInstance(mem::shared_ptr<IModule> m);
+  ModuleInstance(mem::unique_ptr<IModule> m);
   ~ModuleInstance(); // detach on destruction
 
-  mem::shared_ptr<IModule> pModule;
+  mem::unique_ptr<IModule> pModule;
   CanaryObject<__kuribo_module_ctx_t> mInterop{};
 
   bool configured() const;
@@ -32,7 +31,7 @@ struct ModuleInstance final {
   bool detach();
   bool reload();
   // When loading a new version
-  bool transitionTo(mem::shared_ptr<IModule> pOther);
+  bool transitionTo(mem::unique_ptr<IModule> pOther);
 
 private:
   bool moduleCall(__KReason t);

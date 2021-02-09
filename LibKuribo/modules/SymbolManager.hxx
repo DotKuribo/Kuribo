@@ -4,7 +4,6 @@
 
 #include <EASTL/vector.h>
 #include <debug/assert.h>
-#include <system/memory.hxx>
 #include <util/crc.hxx>
 #include <util/deferred.hxx>
 

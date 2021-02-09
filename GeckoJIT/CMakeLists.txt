@@ -8,7 +8,7 @@ add_library(GeckoJIT
 	"engine/engine.hpp"
 	"engine/compiler.cxx"
 	"engine/engine.cxx"
-	# "tests.cxx"
+	"tests.cxx"
 )
 
 target_include_directories(GeckoJIT PUBLIC "./" "${PROJECT_SOURCE_DIR}/../Common" "${PROJECT_SOURCE_DIR}/../Common/vendor")

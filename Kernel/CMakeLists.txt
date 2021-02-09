@@ -51,7 +51,7 @@ if (KURIBO_BUILD_WII)
 		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${KERNEL_COMPILE}")
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${KERNEL_COMPILE}")
 
-		target_link_libraries(KuriboKernel Common GeckoJIT "${CMAKE_SOURCE_DIR}/Targets/libKuriboClang.a")
+		target_link_libraries(KuriboKernel Common GeckoJIT LibKuribo "${CMAKE_SOURCE_DIR}/Targets/libKuriboClang.a")
 	else()
 		set(KERNEL_COMPILE "-Wno-multichar")
 

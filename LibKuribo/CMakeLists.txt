@@ -12,7 +12,12 @@ add_library(LibKuribo
 	"modules/SymbolManager.hxx"
 	"modules/SymbolManager.cxx"
 	"modules/SymbolManager.cxx"
-	"modules/SymbolManager.cxxF"
+	"modules/SymbolManager.cxx"
 )
 
-target_include_directories(LibKuribo PUBLIC "./" "${PROJECT_SOURCE_DIR}/../Common" "${PROJECT_SOURCE_DIR}/../Common/vendor")
+target_include_directories(LibKuribo PUBLIC
+	"./"
+	"${PROJECT_SOURCE_DIR}/../Common"
+	"${PROJECT_SOURCE_DIR}/../Common/vendor"
+	"${PROJECT_SOURCE_DIR}/../"
+)
