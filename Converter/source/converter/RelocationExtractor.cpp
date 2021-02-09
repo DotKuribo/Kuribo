@@ -62,8 +62,15 @@ bool RelocationExtractor::processRelocationSection(
                        .offset = static_cast<u32>(value)};
 
     if (mRemapper != nullptr) {
-      affected = mRemapper(affected, nullptr);
-      source = mRemapper(source, &name);
+      auto wrapped_affected = mRemapper(affected, nullptr);
+      auto wrapped_source = mRemapper(source, &name);
+
+      if (!wrapped_affected.has_value() || !wrapped_source.has_value()) {
+        return false;
+      }
+
+      affected = wrapped_affected.value();
+      source = wrapped_source.value();
     }
 
     assert(affected.section == 0);

@@ -21,7 +21,7 @@ public:
     u32 offset;
   };
 
-  using Remapper = std::function<MapEntry(MapEntry, const std::string*)>;
+  using Remapper = std::function<std::optional<MapEntry>(MapEntry, const std::string*)>;
   void setRemapper(Remapper remapper) { mRemapper = remapper; }
 
   const std::vector<bin::Relocation>& getRelocations() const { return mRelocations; }

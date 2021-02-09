@@ -69,7 +69,7 @@ bool Converter::process(std::vector<u8>& buf) {
         static_cast<u32>(section_start + kxMain->offset);
   } else {
     printf("Cannot find entrypoint.\n");
-  //  return false;
+    //  return false;
   }
 
   // Get the main symtab
@@ -81,21 +81,27 @@ bool Converter::process(std::vector<u8>& buf) {
   }
 
   RelocationExtractor extractor(*symbols);
-  extractor.setRemapper(
-      [&](RelocationExtractor::MapEntry entry,
-          const std::string* symbol) -> RelocationExtractor::MapEntry {
-        // If the section is SHT_NULL, it's an extern
-        if (mElf.sections[entry.section]->get_type() == SHT_NULL) {
-          assert(symbol != nullptr);
-          return {.section = 0xFF, .offset = addExtern(*symbol)};
-        }
+  extractor.setRemapper([&](RelocationExtractor::MapEntry entry,
+                            const std::string* symbol)
+                            -> std::optional<RelocationExtractor::MapEntry> {
+    // If the section is SHT_NULL, it's an extern
+    if (mElf.sections[entry.section]->get_type() == SHT_NULL) {
+      assert(symbol != nullptr);
+      return RelocationExtractor::MapEntry{.section = 0xFF,
+                                           .offset = addExtern(*symbol)};
+    }
 
-        // We only have one section (a CODE section)
-        assert(section_offsets[entry.section] != ~0u);
-        const auto section_start = section_offsets[entry.section] - header_size;
-        return {.section = 0,
-                .offset = static_cast<u32>(section_start + entry.offset)};
-      });
+    // We only have one section (a CODE section)
+    if (section_offsets[entry.section] == ~0u) {
+      printf("Invalid relocation against section %u: %s\n",
+             (unsigned)entry.section,
+             symbol ? symbol->c_str() : "NO SYMBOLNAME");
+    }
+    // assert(section_offsets[entry.section] != ~0u);
+    const auto section_start = section_offsets[entry.section] - header_size;
+    return RelocationExtractor::MapEntry{
+        .section = 0, .offset = static_cast<u32>(section_start + entry.offset)};
+  });
 
   if (!extractor.processRelocations(mElf))
     return false;

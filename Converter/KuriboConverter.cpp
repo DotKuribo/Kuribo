@@ -8,6 +8,14 @@ void writeFile(const std::span<uint8_t> data, const std::string_view path) {
 }
 
 int main(int argc, char** argv) {
+  argc = 3;
+  char* args[] = {(char*)"KuriboConverter.exe",
+                  (char*)"C:\\Users\\rii\\Documents\\dev\\mkw-"
+                         "private\\breadcrumbs\\breadcrumbs.o",
+                  (char*)"C:\\Users\\rii\\Documents\\dev\\mkw-"
+                         "private\\breadcrumbs\\breadcrumbs.kxe"};
+  argv = args;
+
   printf("--------------------------------------\n");
   printf("KuriboConverter v1.0 by riidefi\n");
   printf(" Compatible with kernel version %u\n", KURIBO_CORE_VERSION);
