@@ -1,8 +1,8 @@
 ENTRY(kxStart)
 
 SECTIONS {
-. = 0x808ee920;
-.text 0x808ee920 : ALIGN(0x20){}
+.kx_main 0x808ee920 : ALIGN(0x20){}
+.text : ALIGN(0x20){}
 
 .ctors ALIGN(0x20):{_f_ctors = .;}
 .dtors ALIGN(0x20):{}
@@ -15,6 +15,8 @@ SECTIONS {
 _f_bss = .;
 .bss ALIGN(0x20):{}
 .interp ALIGN(0x20): {}
+
+.* ALIGN(0x20):{}
 }
 
 

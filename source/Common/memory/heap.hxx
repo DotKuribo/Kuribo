@@ -71,6 +71,7 @@ struct unique_ptr {
     mObj = rhs.mObj;
     mHeap = rhs.mHeap;
     rhs.mObj = nullptr;
+    return *this;
   }
 
   TObject* get() { return mObj; }
@@ -85,11 +86,12 @@ struct unique_ptr {
 template <typename T, typename... Args>
 inline unique_ptr<T, default_delete<T>> make_unique(Heap& heap, u32 align = 8,
                                                     Args... args) {
-  return {new (&heap, align) T(args...)), &heap};
+  T* ptr = new (&heap, align) T(args...);
+  return {ptr, &heap};
 }
 template <typename T, typename... Args>
 inline unique_ptr<T, default_delete<T>> make_unique(Heap& heap, u32 align = 8) {
-  return {new (&heap, align) T()), &heap};
+  return {new (&heap, align) T(), &heap};
 }
 
 #if 0

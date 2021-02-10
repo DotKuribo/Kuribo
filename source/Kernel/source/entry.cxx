@@ -6,7 +6,7 @@ extern "C" int main(int image);
 
 #ifdef KURIBO_PLATFORM_WII
 extern "C" void kxStart(int image);
-void kxStart(int image) { main(image); }
+__attribute__((section(".kx_main"))) void kxStart(int image) { main(image); }
 
 extern "C" void __eabi() {}
 #endif

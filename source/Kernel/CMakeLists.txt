@@ -35,11 +35,11 @@ include_directories(${PROJECT_SOURCE_DIR}/../Common)
 if (KURIBO_BUILD_WII)
 	set(KERNEL_LINK, " -Wl,--script=${CMAKE_SOURCE_DIR}/arch/gc.lcf ")
 
-	set(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} -Wl,--script=${CMAKE_SOURCE_DIR}/Kernel/arch/gc.lcf ")
-	set(CMAKE_CXX_LINK_FLAGS "${CMAKE_CXX_LINK_FLAGS} -Wl,--script=${CMAKE_SOURCE_DIR}/Kernel/arch/gc.lcf ")
+	set(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} -Wl,--script=${CMAKE_SOURCE_DIR}/source/Kernel/arch/gc.lcf ")
+	set(CMAKE_CXX_LINK_FLAGS "${CMAKE_CXX_LINK_FLAGS} -Wl,--script=${CMAKE_SOURCE_DIR}/source/Kernel/arch/gc.lcf ")
 
 	if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-		set(KERNEL_COMPILE "-fsanitize=cfi -fvisibility=hidden")
+		set(KERNEL_COMPILE " -fvisibility=hidden -Wno-main -fno-function-sections -fno-data-sections")
 
 		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${KERNEL_COMPILE}")
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${KERNEL_COMPILE}")

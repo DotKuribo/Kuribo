@@ -9,8 +9,11 @@ namespace kuribo::kxer {
 struct LoadParam {
   eastl::string_view binary;
   mem::Heap* heap = nullptr;
-  void** prologueCb = nullptr;
-  mem::unique_ptr<u8>* textCb;
+};
+
+struct LoadedKXE {
+  kuribo_module_prologue prologue;
+  mem::unique_ptr<u8> data;
 };
 
 enum class LoadResult {
@@ -23,6 +26,6 @@ enum class LoadResult {
   BadReloc
 };
 
-LoadResult Load(const LoadParam& param);
+LoadResult Load(const LoadParam& param, LoadedKXE& result);
 
 } // namespace kuribo::kxer

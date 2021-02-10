@@ -11,9 +11,8 @@ KuriboModule::KuriboModule(const u8* buf, const u32 size, mem::Heap* heap) {
 
   KURIBO_SCOPED_LOG("Loading Kuribo binary!");
 
-  auto succ =
-      kxer::Load(kxer::LoadParam{eastl::string_view((const char*)buf, size),
-                                 heap, (void**)&mPrologue, &mData});
+  auto succ = kxer::Load(
+      kxer::LoadParam{eastl::string_view((const char*)buf, size), heap}, mKXE);
 
   if (succ != kxer::LoadResult::Success) {
     KURIBO_LOG("Failed to load Kuribo binary: ");
@@ -38,23 +37,22 @@ KuriboModule::KuriboModule(const u8* buf, const u32 size, mem::Heap* heap) {
       KURIBO_LOG("Unknown error.\n");
       break;
     }
-    mData.reset();
     return;
   }
   KURIBO_ASSERT(succ == kxer::LoadResult::Success);
-  KURIBO_ASSERT(mData);
-  KURIBO_ASSERT(mPrologue);
+  KURIBO_ASSERT(mKXE.data);
+  KURIBO_ASSERT(mKXE.prologue);
 }
 
 int KuriboModule::prologue(int type, __kuribo_module_ctx_t* interop) {
-  if (mPrologue == nullptr)
+  if (mKXE.prologue == nullptr)
     return KURIBO_EXIT_FAILURE;
 
   KURIBO_SCOPED_LOG("KURIBO Module: Prologue call");
   KURIBO_LOG("Type: %u, interop: %p\n", (u32)type, interop);
-  KURIBO_PRINTF("PROLOGUE: %p\n", mPrologue);
+  KURIBO_PRINTF("PROLOGUE: %p\n", mKXE.prologue);
 
-  return mPrologue(type, interop);
+  return mKXE.prologue(type, interop);
 }
 
 } // namespace kuribo

@@ -170,7 +170,7 @@ handleRelocations(const kx::bin::Relocation* pRelocs, u32 reloc_size, u8* pCode,
   return LoadResult::Success;
 }
 
-LoadResult Load(const LoadParam& param) {
+LoadResult Load(const LoadParam& param, LoadedKXE& out) {
   if (param.binary.data() == nullptr ||
       param.binary.size() < kx::bin::HEADER_SIZE)
     return LoadResult::MalformedRequest;
@@ -227,13 +227,9 @@ LoadResult Load(const LoadParam& param) {
   if (result != LoadResult::Success)
     return result;
 
-  if (param.prologueCb != nullptr) {
-    *param.prologueCb = pCode.get() + pHeader->entry_point_offset;
-  }
-
-  if (param.textCb != nullptr) {
-    *param.textCb = std::move(pCode);
-  }
+  out.prologue = reinterpret_cast<kuribo_module_prologue>(
+      pCode.get() + pHeader->entry_point_offset);
+  out.data = std::move(pCode);
 
   return LoadResult::Success;
 }
