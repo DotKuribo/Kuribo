@@ -12,7 +12,7 @@
 #include "system/system.hxx"
 #include <core/patch.hxx>
 
-#include <io/filesystem.hxx>
+#include <LibKuribo/filesystem.hxx>
 #include <io/io.hxx>
 
 #include "GeckoJIT/engine/compiler.hpp"

@@ -1,6 +1,6 @@
 #include "system.hxx"
 #include <EASTL/string.h>
-#include <io/filesystem.hxx>
+#include <LibKuribo/filesystem.hxx>
 
 namespace kuribo {
 

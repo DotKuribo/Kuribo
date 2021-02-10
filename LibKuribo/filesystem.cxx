@@ -29,6 +29,7 @@ const char* gStrings;
 
 void InitFilesystem() {
 #ifdef _WIN32
+  return;
   FILE* pFile = fopen("FST.bin", "rb");
   gNodes = (Node*)malloc(0x1cee0);
   fread((void*)gNodes, 0x1cee0, 1, pFile);

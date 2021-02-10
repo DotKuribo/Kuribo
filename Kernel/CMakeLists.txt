@@ -6,7 +6,6 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_executable (KuriboKernel
 	
-	"source/io/filesystem.hxx"
 	"source/io/io.hxx"
 	"source/system/memory.hxx"
 	"source/system/memory/free_list_heap.hxx"
@@ -20,7 +19,6 @@ add_executable (KuriboKernel
 	"source/system/system.hxx"
 	
 	"source/entry.cxx"
-	"source/io/filesystem.cxx"
 	"source/platform.cxx"
 	"source/system/memory/memory.cxx"
 	"source/system/memory/xalloc/FreeListAllocator.cxx"
