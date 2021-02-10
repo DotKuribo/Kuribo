@@ -4,7 +4,6 @@ set(CMAKE_CXX_STANDARD 17)
 
 add_library(Common
 	"api/HostInterop.h"
-	"api/Module.h"
 	"common.h"
 	"config.h"
 	"types.h"
@@ -164,4 +163,4 @@ add_library(Common
 	"vendor/EASTL/string.cpp"
  "compiler/ppc.hxx" "security/Canary.hxx")
 
-target_include_directories(Common PUBLIC "./" "./vendor")
+target_include_directories(Common PUBLIC "./" "./vendor" "../")

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "api/Module.h"
 #include "config.h"
 #include "types.h"
 #include <EASTL/memory.h>
@@ -8,6 +7,7 @@
 #include <cstdio>
 #include <security/Canary.hxx>
 #include <memory/heap.hxx>
+#include <sdk/kuribo_sdk.h>
 
 namespace kuribo {
 

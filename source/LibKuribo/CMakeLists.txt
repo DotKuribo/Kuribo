@@ -22,4 +22,5 @@ target_include_directories(LibKuribo PUBLIC
 	"${PROJECT_SOURCE_DIR}/../Common"
 	"${PROJECT_SOURCE_DIR}/../Common/vendor"
 	"${PROJECT_SOURCE_DIR}/../"
+	"${PROJECT_SOURCE_DIR}/../../"
 )
