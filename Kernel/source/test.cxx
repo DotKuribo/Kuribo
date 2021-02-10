@@ -1,7 +1,5 @@
 #define KURIBO_ENABLE_LOG
 
-#include "modules/gecko/Frontend.hxx"
-
 #include "system/memory.hxx"
 #include <EASTL/array.h>
 #include <EASTL/string.h>
@@ -10,8 +8,6 @@
 
 #include "api/HostInterop.h"
 #include "io/io.hxx"
-
-#include "modules/gecko/CodePrinter.hxx"
 
 #include "system/system.hxx"
 #include <core/patch.hxx>
@@ -22,7 +18,6 @@
 #include "GeckoJIT/engine/compiler.hpp"
 
 #include <modules/SymbolManager.hxx>
-#include <modules/kamek/Module.hxx>
 #include <modules/kxer/Module.hxx>
 
 void GeckoJIT_RunTests();
@@ -64,6 +59,7 @@ void CodeJIT() {
     KURIBO_LOG("How's this? %s\n", it.getName());
   }
 }
+#if 0
 void CodeParser() {
   KURIBO_SCOPED_LOG("Code Parsing Test");
 
@@ -80,6 +76,7 @@ void CodeParser() {
 
   parser.parse(printer);
 }
+#endif
 } // namespace tests
 
 // eastl::array<char, 1024 * 4 * 64> heap;
@@ -116,12 +113,14 @@ void comet_app_install(void* image, void* vaddr_load, uint32_t load_size) {
   kuribo::kxRegisterProcedure("OSReport", FFI_NAME(os_report));
   kuribo::kxRegisterProcedure("kxGeckoJitCompileCodes",
                               (u32)&kuribo::kxGeckoJitCompileCodes);
+#if 0
   auto our_module =
       eastl::make_unique<kuribo::KamekModule>("Kuribo/TestModule.kmk");
   if (our_module->mData == nullptr) {
     KURIBO_PRINTF("[KURIBO] Failed to load module\n");
   } else {
   }
+#endif
   typedef f32 (*kxU32toF32_t)(u32);
   u32 in = 50;
   kxU32toF32_t cvt = (kxU32toF32_t)kuribo::kxGetProcedure("kxConvertU32toF32");

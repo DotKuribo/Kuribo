@@ -8,9 +8,6 @@ add_executable (KuriboKernel
 	
 	"source/io/filesystem.hxx"
 	"source/io/io.hxx"
-	"source/modules/kamek/Loader.hxx"
-	"source/modules/kamek/Module.hxx"
-	"source/modules/kamek/kamek.h"
 	"source/system/memory.hxx"
 	"source/system/memory/free_list_heap.hxx"
 	"../Common/memory/heap.hxx"
@@ -24,8 +21,6 @@ add_executable (KuriboKernel
 	
 	"source/entry.cxx"
 	"source/io/filesystem.cxx"
-	"source/modules/gecko/Frontend.cxx"
-	"source/modules/kamek/Loader.cxx"
 	"source/platform.cxx"
 	"source/system/memory/memory.cxx"
 	"source/system/memory/xalloc/FreeListAllocator.cxx"
