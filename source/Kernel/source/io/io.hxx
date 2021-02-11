@@ -25,6 +25,9 @@ inline entry queryEntryNum(const char* path) {
   return ((s32(*)(const char*))FFI_NAME(dvd_path_to_entrynum))(path);
 }
 inline bool open(low_dvd_Handle& handle, entry ent) {
+#ifdef _WIN32
+  return false;
+#endif
   return ((s32(*)(s32, low_dvd_Handle*))FFI_NAME(dvd_fast_open))(ent, &handle);
 }
 inline s32 read(low_dvd_Handle& handle, void* buf, int len, int offset) {
@@ -45,6 +48,7 @@ struct Handle : public low_dvd_Handle {
     bOpened = open(*this, ent);
     KURIBO_ASSERT(bOpened && "Cannot open file");
   }
+  inline Handle(entry e) { bOpened = open(*this, e); }
   inline ~Handle() {
     if (bOpened)
       close(*this);
@@ -62,6 +66,26 @@ struct Handle : public low_dvd_Handle {
   bool bOpened = false;
 };
 inline eastl::unique_ptr<u8[]> loadFile(const char* path, int* size, int* rsize,
+                                        kuribo::mem::Heap* heap = nullptr) {
+  Handle file(path);
+  if (!file.bOpened)
+    return nullptr;
+
+  u8* buf = new (heap ? heap : &kuribo::mem::GetDefaultHeap(), 32)
+      u8[file.getRoundedSize()];
+  KURIBO_ASSERT(buf && "Cannot allocate buffer.");
+
+  if (rsize)
+    *rsize = file.getRealSize();
+  if (size)
+    *size = file.getRoundedSize();
+
+  file.read(buf, file.getRoundedSize(), 0);
+
+  return eastl::unique_ptr<u8[]>(buf);
+}
+
+inline eastl::unique_ptr<u8[]> loadFile(entry path, int* size, int* rsize,
                                         kuribo::mem::Heap* heap = nullptr) {
   Handle file(path);
   if (!file.bOpened)

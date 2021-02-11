@@ -133,7 +133,7 @@ public:
     return !operator==(rhs);
   }
 
-  RecursiveDirectoryIterator begin() const { return mPath; }
+  RecursiveDirectoryIterator begin() const { return {mPath.getNode() + 1}; }
   RecursiveDirectoryIterator end() const {
     if (!mPath.getNode()->is_folder)
       return begin();
