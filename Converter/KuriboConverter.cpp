@@ -8,8 +8,6 @@ void writeFile(const std::span<uint8_t> data, const std::string_view path) {
 }
 
 int main(int argc, char** argv) {
-
-
   printf("--------------------------------------\n");
   printf("KuriboConverter v1.0 by riidefi\n");
   printf(" Compatible with kernel version %u\n", KURIBO_CORE_VERSION);

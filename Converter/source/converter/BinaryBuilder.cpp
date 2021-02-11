@@ -62,7 +62,7 @@ void BinaryBuilder::writeImportsSection(
 }
 
 void BinaryBuilder::writeRelocationsSection(
-    kx::bin::Header& header, const std::vector<bin::Relocation>& relocations) {
+    kx::bin::Header& header, const std::vector<Relocation>& relocations) {
   auto write_u32 = [&](u32 val) {
     mData.push_back(val >> 24);
     mData.push_back((val << 8) >> 24);

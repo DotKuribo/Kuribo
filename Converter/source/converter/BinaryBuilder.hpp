@@ -1,5 +1,6 @@
 #pragma once
 
+#include "RelocationExtractor.hpp"
 #include "StringTable.hpp"
 #include <format/Binary.hpp>
 #include <types.h>
@@ -27,7 +28,7 @@ public:
                            const std::vector<std::string>& imports);
 
   void writeRelocationsSection(kx::bin::Header& header,
-                               const std::vector<bin::Relocation>& relocations);
+                               const std::vector<Relocation>& relocations);
 
   void packStringTable(std::vector<u8>& buf,
                        const std::vector<std::string>& strings);

@@ -28,8 +28,8 @@ bool RelocationExtractor::processRelocationSection(
     section.get_entry(i, r_offset, r_symbol, r_type, r_addend);
 
 #ifndef NDEBUG
-    std::cout << "RELOC: " << r_symbol << std::endl;
-    printf("Type: %u\n", (u32)r_type);
+    // std::cout << "RELOC: " << r_symbol << std::endl;
+    // printf("Type: %u\n", (u32)r_type);
 #endif
 
     if (r_type == R_PPC_NONE)
@@ -49,7 +49,7 @@ bool RelocationExtractor::processRelocationSection(
     }
 
 #ifndef NDEBUG
-    std::cout << name << std::endl;
+    // std::cout << name << std::endl;
 #endif
 
     // The affected section is always CODE, as we collapse all sections into
@@ -59,7 +59,8 @@ bool RelocationExtractor::processRelocationSection(
     MapEntry affected = {.section = static_cast<u8>(affected_section),
                          .offset = static_cast<u32>(r_offset)};
     MapEntry source = {.section = static_cast<u8>(section_index),
-                       .offset = static_cast<u32>(value)};
+                       .offset = static_cast<u32>(value),
+                       .name = name};
 
     if (mRemapper != nullptr) {
       auto wrapped_affected = mRemapper(affected, nullptr);
@@ -71,17 +72,24 @@ bool RelocationExtractor::processRelocationSection(
 
       affected = wrapped_affected.value();
       source = wrapped_source.value();
+      source.name = name;
     }
 
     assert(affected.section == 0);
 
-    mRelocations.push_back({.r_type = static_cast<u8>(r_type),
-                            .affected_section = affected.section,
-                            .source_section = source.section,
-                            .pad = 0,
-                            .affected_offset = affected.offset,
-                            .source_offset = source.offset,
-                            .source_addend = static_cast<u32>(r_addend)});
+    bin::Relocation bin_reloc{.r_type = static_cast<u8>(r_type),
+                              .affected_section = affected.section,
+                              .source_section = source.section,
+                              .pad = 0,
+                              .affected_offset = affected.offset,
+                              .source_offset = source.offset,
+                              .source_addend = static_cast<u32>(r_addend)};
+
+    Relocation reloc = bin_reloc;
+    reloc.source_symbol = source.name;
+    reloc.affected_symbol = affected.name;
+
+    mRelocations.push_back(reloc);
   }
 
   return true;

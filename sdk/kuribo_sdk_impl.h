@@ -1,9 +1,8 @@
 #ifndef __KURIBO_SDK_IMPL
 #define __KURIBO_SDK_IMPL
 
-#include "kuribo_sdk/kuribo_types.h"
 #include "kuribo_sdk/kuribo_internal_api.h"
-
+#include "kuribo_sdk/kuribo_types.h"
 
 /* @brief Fillin a simple metadata structure for a
  *        KURIBO_REASON_INQUIRE_META_DESC call.
@@ -33,22 +32,76 @@ static inline int __kuribo_fillin_metadata_v0(
 /* Global context declaration.
  * - Not currently used.
  */
-extern __kuribo_module_ctx_t* __kuribo_ctx;
+extern __kuribo_module_ctx_t __kuribo_ctx;
 
+#ifdef __CWCC__
+typedef struct __kuribo_dtor_node {
+  struct __kuribo_dtor_node* pred;
+  void* dtor;
+  void* obj;
+} __kuribo_dtor_node;
 
+extern void** __ctor_loc;
+extern void** __ctor_end;
+
+extern __kuribo_dtor_node* __kuribo_dtor_list;
+
+typedef void (*__kuribo_ctor_t)(void);
+typedef __kuribo_ctor_t* __kuribo_ctors;
+
+static inline void __kuribo_on_attach(u32 start_addr) {
+  char* ctor_begin_rel = (char*)&__ctor_loc;
+  char* ctor_end_rel = (char*)&__ctor_end;
+
+  __kuribo_ctors ctor_begin = (__kuribo_ctors)(ctor_begin_rel + start_addr);
+  __kuribo_ctors ctor_end = (__kuribo_ctors)(ctor_end_rel + start_addr);
+
+  for (__kuribo_ctors f = ctor_begin; f < ctor_end; ++f) {
+    (*f)();
+  }
+}
+
+static inline void __kuribo_on_detach() {
+  for (__kuribo_dtor_node* it = __kuribo_dtor_list; it; it = it->pred) {
+    ((void (*)(void*, int))it->dtor)(it->obj, -1);
+  }
+}
+
+#define KURIBO_ATTACH_DETATCH_HOOKS_IMPL                                       \
+  __kuribo_dtor_node* __kuribo_dtor_list;                                      \
+  void __register_global_object(void* obj, void* dtor,                         \
+                                __kuribo_dtor_node* node) {                    \
+    node->pred = __kuribo_dtor_list;                                           \
+    node->dtor = dtor;                                                         \
+    node->obj = obj;                                                           \
+    __kuribo_dtor_list = node;                                                 \
+  }
+
+#else
+
+#define __kuribo_on_attach(start_addr)
+#define __kuribo_on_detach()
+#define KURIBO_ATTACH_DETATCH_HOOKS_IMPL
+
+#endif
+
+// #ifdef __CWCC__
+// #define _start __start
+// #endif
 
 #ifdef KURIBO_MODULE_BEGIN
 #undef KURIBO_MODULE_BEGIN
 #endif
 
 #define KURIBO_MODULE_BEGIN(name, author, version)                             \
-  __kuribo_module_ctx_t* __kuribo_ctx;                                         \
+  __kuribo_module_ctx_t __kuribo_ctx;                                          \
+  KURIBO_ATTACH_DETATCH_HOOKS_IMPL;                                            \
   KURIBO_EXTERN_C int _start(int, __kuribo_module_ctx_t*);                     \
   int _start(int __reason, __kuribo_module_ctx_t* __ctx) {                     \
     if (!__ctx || __ctx->core_version != KURIBO_CORE_VERSION) {                \
       return KURIBO_EXIT_FAILURE;                                              \
     }                                                                          \
-    __kuribo_ctx = __ctx;                                                      \
+    __kuribo_ctx = *__ctx;                                                     \
     switch (__reason) {                                                        \
     default:                                                                   \
       return KURIBO_EXIT_FAILURE;                                              \
@@ -58,7 +111,11 @@ extern __kuribo_module_ctx_t* __kuribo_ctx;
     case KURIBO_REASON_LOAD:                                                   \
     case KURIBO_REASON_UNLOAD: {                                               \
       const int __kuribo_attach = __reason == KURIBO_REASON_LOAD ? 1 : 0;      \
-      const int __kuribo_detach = __reason == KURIBO_REASON_UNLOAD ? 1 : 0;
+      const int __kuribo_detach = __reason == KURIBO_REASON_UNLOAD ? 1 : 0;    \
+      if (__kuribo_attach)                                                     \
+        __kuribo_on_attach((u32)__ctx->start_address);                         \
+      else if (__kuribo_detach)                                                \
+        __kuribo_on_detach();
 
 #ifdef KURIBO_MODULE_END
 #undef KURIBO_MODULE_END
@@ -95,8 +152,7 @@ static inline void __kuribo_multipatch_b(u32* addr, u32 value, u32* save,
                                          int attach, int lk) {
   const u32 delta = (u32)value - (u32)addr;
   __kuribo_multipatch_write(
-      addr, 0x48000000 | (delta & 0x3fffffc) | (lk ? 1 : 0),
-      save, attach);
+      addr, 0x48000000 | (delta & 0x3fffffc) | (lk ? 1 : 0), save, attach);
 }
 
 #define CONCAT_IMPL(x, y) x##y
@@ -148,7 +204,7 @@ static inline void __kuribo_multipatch_b(u32* addr, u32 value, u32* save,
 #endif
 
 #define KURIBO_GET_PROCEDURE(function)                                         \
-  ((void*)__kuribo_ctx->get_procedure(function))
+  ((void*)__kuribo_ctx.get_procedure(function))
 
 #undef KURIBO_VTABLE
 #undef KURIBO_EXECUTE_ON_LOAD

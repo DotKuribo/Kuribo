@@ -2,11 +2,19 @@
 
 #include "elfio/elfio.hpp"
 #include "format/Binary.hpp"
+#include <functional>
 #include <optional>
 #include <vector>
-#include <functional>
 
 namespace kx {
+
+struct Relocation : public bin::Relocation {
+  Relocation() = default;
+  Relocation(bin::Relocation r) { static_cast<bin::Relocation&>(*this) = r; }
+  // DEBUG
+  std::string affected_symbol;
+  std::string source_symbol;
+};
 
 class RelocationExtractor {
 public:
@@ -19,17 +27,20 @@ public:
   struct MapEntry {
     u8 section;
     u32 offset;
+    // DEBUG
+    std::string name;
   };
 
-  using Remapper = std::function<std::optional<MapEntry>(MapEntry, const std::string*)>;
+  using Remapper =
+      std::function<std::optional<MapEntry>(MapEntry, const std::string*)>;
   void setRemapper(Remapper remapper) { mRemapper = remapper; }
 
-  std::vector<bin::Relocation>& getRelocations() { return mRelocations; }
+  std::vector<Relocation>& getRelocations() { return mRelocations; }
 
 private:
   Remapper mRemapper = nullptr;
   ELFIO::symbol_section_accessor mSymbols;
-  std::vector<bin::Relocation> mRelocations;
+  std::vector<Relocation> mRelocations;
 };
 
 } // namespace kx

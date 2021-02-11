@@ -40,12 +40,14 @@ void PrintModuleInfo(kuribo_module_prologue prologue) {
   KURIBO_PRINTF("~~~~~~~~~~~~~~~~~~~~~~~\n");
 }
 
-void LinkModule(kuribo_module_prologue prologue) {
+void LinkModule(kuribo_module_prologue prologue, void* start_address) {
   __kuribo_module_ctx_t ctx;
   ctx.core_version = KURIBO_CORE_VERSION;
 
   ctx.get_procedure = nullptr;
   ctx.register_procedure = nullptr;
+
+  ctx.start_address = reinterpret_cast<char*>(start_address);
 
   prologue(KURIBO_REASON_LOAD, &ctx);
 }
@@ -106,12 +108,12 @@ void comet_app_install(void* image, void* vaddr_load, uint32_t load_size) {
 
     KURIBO_PRINTF("Loaded module. Size: %i, rsize: %i\n", size, rsize);
 
-    auto* module = new kuribo::KuriboModule(kxmodule.get(), size,
-                                            &kuribo::mem::GetDefaultHeap());
-    KURIBO_PRINTF("PROLOGUE: %p\n", module->mKXE.prologue);
+    auto* kxe = new kuribo::KuriboModule(kxmodule.get(), size,
+                                         &kuribo::mem::GetDefaultHeap());
+    KURIBO_PRINTF("PROLOGUE: %p\n", kxe->mKXE.prologue);
 
-    PrintModuleInfo(module->mKXE.prologue);
-    LinkModule(module->mKXE.prologue);
+    PrintModuleInfo(kxe->mKXE.prologue);
+    LinkModule(kxe->mKXE.prologue, kxe->mKXE.data.get());
 
     KURIBO_PRINTF("FINISHED\n");
   }

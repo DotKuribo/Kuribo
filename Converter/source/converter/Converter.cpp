@@ -104,12 +104,12 @@ bool Converter::process(std::vector<u8>& buf) {
       if (auto symbol_explicit = getSymbol(*symbol);
           symbol_explicit.has_value()) {
         // This will be applied statically
-        return RelocationExtractor::MapEntry{.section = 0xFE,
-                                             .offset = *symbol_explicit};
+        return RelocationExtractor::MapEntry{
+            .section = 0xFE, .offset = *symbol_explicit, .name = *symbol};
       }
 
-      return RelocationExtractor::MapEntry{.section = 0xFF,
-                                           .offset = addExtern(*symbol)};
+      return RelocationExtractor::MapEntry{
+          .section = 0xFF, .offset = addExtern(*symbol), .name = *symbol};
     }
 
     // We only have one section (a CODE section)
@@ -132,8 +132,8 @@ bool Converter::process(std::vector<u8>& buf) {
     if (reloc.source_section != 0xFE)
       continue;
     // Apply the relocation now
-    const auto section_start =
-        section_offsets[reloc.affected_section] - header_size;
+    assert(reloc.affected_section == 0);
+    const auto section_start = header_size;
     u8* affected = buf.data() + section_start + reloc.affected_offset;
     u32 source = reloc.source_offset + reloc.source_addend;
     switch (reloc.r_type) {
@@ -231,7 +231,8 @@ bool Converter::collectSections(std::vector<std::size_t>& section_offsets,
     max_align = std::max(max_align, align);
 
     buf.resize(roundUp(buf.size(), align));
-    section_offsets.push_back(buf.size());
+    const auto section_offset = buf.size();
+    section_offsets.push_back(section_offset);
     if (section.get_type() == SHT_PROGBITS) {
       buf.insert(buf.end(), section.get_data(),
                  section.get_data() + section.get_size());
@@ -240,6 +241,12 @@ bool Converter::collectSections(std::vector<std::size_t>& section_offsets,
     } else {
       printf("Invalid section..\n");
       return false;
+    }
+
+    if (section.get_name() == ".ctors") {
+      constexpr auto header_size = roundUp(sizeof(bin::Header), 32);
+      mExplicitSymbols["__ctor_loc"] = section_offset - header_size;
+      mExplicitSymbols["__ctor_end"] = buf.size() - header_size;
     }
   }
 
@@ -263,7 +270,7 @@ Converter::lookup(ELFIO::section& section, const std::string& key) {
       continue;
 
 #ifndef NDEBUG
-    std::cout << name << std::endl;
+      // std::cout << name << std::endl;
 #endif
 
     if (name != key)
