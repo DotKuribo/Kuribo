@@ -15,6 +15,7 @@ public:
   Converter() = default;
   ~Converter() = default;
 
+  void readSymbols(const std::string& path);
   bool addElf(const char* path);
   void printElfInfo(const ELFIO::elfio& elf) const;
   bool process(std::vector<u8>& buf);
@@ -35,8 +36,11 @@ private:
   u32 addExtern(std::string_view string);
   bool keep_section(const ELFIO::section& section);
 
+  // User specified externs
+  std::optional<u32> getSymbol(std ::string_view string) const;
+
   ELFIO::elfio mElf;
-  // std::map<std::string, SymbolValue> mSymbols;
+  std::map<std::string, u32> mExplicitSymbols;
   std::vector<std::string> mImports;
 };
 

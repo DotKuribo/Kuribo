@@ -35,8 +35,6 @@ void comet_app_install(void* image, void* vaddr_load, uint32_t load_size) {
   kuribo::mem::Init(base_addr, size, nullptr, 0);
   // kuribo::mem::AddRegion((void*)0x8042EB00, 923448, false);
 
-
-
   kuribo::System::createSystem();
   kuribo::SymbolManager::initializeStaticInstance();
   kuribo::kxRegisterProcedure("OSReport", FFI_NAME(os_report));
@@ -70,10 +68,29 @@ void comet_app_install(void* image, void* vaddr_load, uint32_t load_size) {
     //}
     // kuribo::Critical q;
     int size, rsize;
-    auto kxmodule = kuribo::io::dvd::loadFile("Kuribo/GCC.kxe", &size, &rsize);
+    auto kxmodule = kuribo::io::dvd::loadFile("breadcrumbs.kxe", &size, &rsize);
+    KURIBO_PRINTF("Loaded module. Size: %i, rsize: %i\n", size, rsize);
 
-    kuribo::KuriboModule module(kxmodule.get(), size,
-                                &kuribo::mem::GetDefaultHeap());
+    auto* module = new kuribo::KuriboModule(kxmodule.get(), size,
+                                            &kuribo::mem::GetDefaultHeap());
+    KURIBO_PRINTF("PROLOGUE: %p\n", module->mKXE.prologue);
+
+    __kuribo_module_ctx_t ctx;
+    ctx.core_version = KURIBO_CORE_VERSION;
+    __kuribo_simple_meta_v0 meta;
+    ctx.udata.fillin_meta = &meta;
+    module->mKXE.prologue(KURIBO_REASON_INQUIRE_META_DESC, &ctx);
+    KURIBO_PRINTF("~~~~~~~~~~~~~~~~~~~~~~~\n");
+    KURIBO_PRINTF("[KURIBO] Loading module\n");
+    KURIBO_PRINTF("         Name:     \t%s\n", meta.module_name);
+    KURIBO_PRINTF("         Author:   \t%s\n", meta.module_author);
+    KURIBO_PRINTF("         Version:  \t%s\n", meta.module_version);
+    KURIBO_PRINTF("                     \n");
+    KURIBO_PRINTF("         Built:    \t%s\n", meta.build_date);
+    KURIBO_PRINTF("         Compiler: \t%s\n", meta.compiler_name);
+    KURIBO_PRINTF("~~~~~~~~~~~~~~~~~~~~~~~\n");
+    module->mKXE.prologue(KURIBO_REASON_LOAD, &ctx);
+
     KURIBO_PRINTF("FINISHED\n");
   }
 }

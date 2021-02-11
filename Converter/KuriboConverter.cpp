@@ -8,13 +8,7 @@ void writeFile(const std::span<uint8_t> data, const std::string_view path) {
 }
 
 int main(int argc, char** argv) {
-  argc = 3;
-  char* args[] = {(char*)"KuriboConverter.exe",
-                  (char*)"C:\\Users\\rii\\Documents\\dev\\mkw-"
-                         "private\\breadcrumbs\\breadcrumbs.o",
-                  (char*)"C:\\Users\\rii\\Documents\\dev\\mkw-"
-                         "private\\breadcrumbs\\breadcrumbs.kxe"};
-  argv = args;
+
 
   printf("--------------------------------------\n");
   printf("KuriboConverter v1.0 by riidefi\n");
@@ -25,7 +19,7 @@ int main(int argc, char** argv) {
       argc >= 2 && (!strcmp(argv[1], "-help") || !strcmp(argv[1], "-help"));
 
   if (argc < 2 || is_help_wanted) {
-    fprintf(stderr, "Usage: KuriboConverter.exe <source.elf> [dest.kxe]");
+    fprintf(stderr, "Usage: KuriboConverter.exe <source.elf> [dest.kxe] [symbols.txt]");
     return 1;
   }
 
@@ -34,7 +28,7 @@ int main(int argc, char** argv) {
 #else
   const std::string source_path = argv[1];
   const std::string dest_path = [&]() -> std::string {
-    if (argc == 2) {
+    if (argc <= 2) {
       std::string tmp = source_path;
       auto search = tmp.rfind(".elf");
       if (search != std::string::npos)
@@ -46,8 +40,12 @@ int main(int argc, char** argv) {
       return argv[2];
     }
   }();
+  const std::string symbols = argc >= 3 ? argv[3] : "";
 #endif
   kx::Converter converter;
+
+  if (!symbols.empty())
+  converter.readSymbols(symbols);
 
   if (!converter.addElf(source_path.c_str())) {
     printf("Not a valid 32-bit ELF file\n");

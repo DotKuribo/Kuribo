@@ -65,6 +65,9 @@ handleRelocation(const kx::bin::Relocation* reloc, u8* pCode, u8* pImports,
   if (reloc->source_section == 0) {
     source = reinterpret_cast<u32>(pCode) + reloc->source_offset +
              reloc->source_addend;
+  } else if (reloc->source_section == 0xFD) {
+    source = reloc->source_offset + reloc->source_addend;
+    KURIBO_LOG("0xFD: Linking to %08x\n", source);
   } else if (reloc->source_section == 0xFF) {
     if (pImports == nullptr) {
       KURIBO_LOG("Imports section doesn't exist, but is referenced\n");

@@ -24,7 +24,7 @@ public:
   using Remapper = std::function<std::optional<MapEntry>(MapEntry, const std::string*)>;
   void setRemapper(Remapper remapper) { mRemapper = remapper; }
 
-  const std::vector<bin::Relocation>& getRelocations() const { return mRelocations; }
+  std::vector<bin::Relocation>& getRelocations() { return mRelocations; }
 
 private:
   Remapper mRemapper = nullptr;

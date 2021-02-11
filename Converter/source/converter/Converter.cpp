@@ -3,8 +3,21 @@
 #include "RelocationExtractor.hpp"
 #include "crc.hpp"
 #include <assert.h>
+#include <sstream>
 
 namespace kx {
+
+void Converter::readSymbols(const std::string& path) {
+  std::ifstream stream(path);
+
+  std::string line;
+  while (std::getline(stream, line)) {
+    std::string symbol = line.substr(0, line.find("="));
+    std::string value = line.substr(symbol.size());
+    if (value.size() > 3)
+      mExplicitSymbols[symbol] = strtoul(value.c_str() + 3, nullptr, 16);
+  }
+}
 
 bool Converter::addElf(const char* path) {
   if (!mElf.load(path))
@@ -87,6 +100,14 @@ bool Converter::process(std::vector<u8>& buf) {
     // If the section is SHT_NULL, it's an extern
     if (mElf.sections[entry.section]->get_type() == SHT_NULL) {
       assert(symbol != nullptr);
+
+      if (auto symbol_explicit = getSymbol(*symbol);
+          symbol_explicit.has_value()) {
+        // This will be applied statically
+        return RelocationExtractor::MapEntry{.section = 0xFE,
+                                             .offset = *symbol_explicit};
+      }
+
       return RelocationExtractor::MapEntry{.section = 0xFF,
                                            .offset = addExtern(*symbol)};
     }
@@ -105,6 +126,61 @@ bool Converter::process(std::vector<u8>& buf) {
 
   if (!extractor.processRelocations(mElf))
     return false;
+
+  auto& relocs = extractor.getRelocations();
+  for (auto& reloc : relocs) {
+    if (reloc.source_section != 0xFE)
+      continue;
+    // Apply the relocation now
+    const auto section_start =
+        section_offsets[reloc.affected_section] - header_size;
+    u8* affected = buf.data() + section_start + reloc.affected_offset;
+    u32 source = reloc.source_offset + reloc.source_addend;
+    switch (reloc.r_type) {
+    case R_PPC_NONE:
+      break;
+    default:
+      // 0xFD must still be resolved
+      // The others can be done on link time though
+      reloc.source_section = 0xFD;
+      break;
+    case R_PPC_ADDR32: {
+      *reinterpret_cast<u32*>(affected) = swap32(source);
+      break;
+    }
+    case R_PPC_ADDR24: {
+      u32 old = swap32(*reinterpret_cast<u32*>(affected));
+      old = (old & ~0x03fffffc) | (source & 0x03fffffc);
+      *reinterpret_cast<u32*>(affected) = swap32(old);
+      break;
+    }
+    case R_PPC_ADDR16: // Identical..
+    case R_PPC_ADDR16_LO: {
+      *reinterpret_cast<u16*>(affected) = swap16(source);
+      break;
+    }
+    case R_PPC_ADDR16_HI: {
+      *reinterpret_cast<u16*>(affected) = swap16(source >> 16);
+      break;
+    }
+    case R_PPC_ADDR16_HA: {
+      *reinterpret_cast<u16*>(affected) =
+          swap16((source >> 16) + !!(source & 0x8000));
+      break;
+    }
+    case R_PPC_ADDR14:
+    case R_PPC_ADDR14_BRTAKEN:
+    case R_PPC_ADDR14_BRNKTAKEN: {
+      u32 old = swap32(*reinterpret_cast<u32*>(affected));
+      old = (old & ~0x0000'fffc) | (source & 0x0000'fffc);
+      *reinterpret_cast<u32*>(affected) = swap32(old);
+      break;
+    }
+    }
+  }
+
+  std::remove_if(relocs.begin(), relocs.end(),
+                 [](auto& reloc) { return reloc.source_section == 0xFE; });
 
   builder.writeRelocationsSection(header, extractor.getRelocations());
   builder.writeImportsSection(header, mImports);
@@ -232,6 +308,16 @@ bool Converter::keep_section(const ELFIO::section& section) {
     return false;
 
   return section.get_type() == SHT_PROGBITS || section.get_type() == SHT_NOBITS;
+}
+
+std::optional<u32> Converter::getSymbol(std::string_view string) const {
+  std::string key{string};
+
+  auto it = mExplicitSymbols.find(key);
+  if (it == mExplicitSymbols.end())
+    return std::nullopt;
+
+  return {it->second};
 }
 
 } // namespace kx
