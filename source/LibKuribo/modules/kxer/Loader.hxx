@@ -9,6 +9,9 @@ namespace kuribo::kxer {
 struct LoadParam {
   eastl::string_view binary;
   mem::Heap* heap = nullptr;
+
+  // 
+  eastl::string_view* invalid_symbol = nullptr;
 };
 
 struct LoadedKXE {

@@ -3,44 +3,48 @@
 
 namespace kuribo {
 
-KuriboModule::KuriboModule(const u8* buf, const u32 size, mem::Heap* heap) {
-#ifdef _WIN32
-  return;
-#endif
+KuriboModuleLoader::Result KuriboModuleLoader::tryLoad(const u8* buf,
+                                                       const u32 size,
+                                                       mem::Heap* heap,
+                                                       kxer::LoadedKXE& kxe) {
+  KURIBO_SCOPED_LOG("Loading Kuribo binary...");
 
-  KURIBO_SCOPED_LOG("Loading Kuribo binary!");
+  eastl::string_view invalid_symbol = "?";
 
-  auto succ = kxer::Load(
-      kxer::LoadParam{eastl::string_view((const char*)buf, size), heap}, mKXE);
+  kxer::LoadParam param{.binary = eastl::string_view((const char*)buf, size),
+                        .heap = heap,
+                        .invalid_symbol = &invalid_symbol};
 
-  if (succ != kxer::LoadResult::Success) {
-    KURIBO_LOG("Failed to load Kuribo binary: ");
+  auto succ = kxer::Load(param, kxe);
 
-    switch (succ) {
-    case kxer::LoadResult::MalformedRequest:
-      KURIBO_LOG("Malformed Request -- Caller supplied invalid arguments.\n");
-      break;
-    case kxer::LoadResult::InvalidFileType:
-      KURIBO_LOG("Invalid File -- This is not a Kuribo binary.\n");
-      break;
-    case kxer::LoadResult::InvalidVersion:
-      KURIBO_LOG("Invalid Version -- Only V0 are supported.\n");
-      break;
-    case kxer::LoadResult::BadAlloc:
-      KURIBO_LOG("Out of Memory -- File is too large.\n");
-      break;
-    case kxer::LoadResult::BadReloc:
-      KURIBO_LOG("Bad relocation\n");
-      break;
-    default:
-      KURIBO_LOG("Unknown error.\n");
-      break;
-    }
-    return;
+  if (succ == kxer::LoadResult::Success) {
+    return Result{.success = true};
   }
-  KURIBO_ASSERT(succ == kxer::LoadResult::Success);
-  KURIBO_ASSERT(mKXE.data);
-  KURIBO_ASSERT(mKXE.prologue);
-}
 
+  eastl::string mesg;
+  switch (succ) {
+  case kxer::LoadResult::MalformedRequest:
+    mesg = "Malformed Request -- Caller supplied invalid arguments.\n";
+    break;
+  case kxer::LoadResult::InvalidFileType:
+    mesg = "Invalid File -- This is not a Kuribo binary.\n";
+    break;
+  case kxer::LoadResult::InvalidVersion:
+    mesg = "Invalid Version -- Only V0 are supported.\n";
+    break;
+  case kxer::LoadResult::BadAlloc:
+    mesg = "Out of Memory -- File is too large.\n";
+    break;
+  case kxer::LoadResult::BadReloc:
+    mesg += "The module needs a function \"";
+    mesg += eastl::string(invalid_symbol);
+    mesg += "\", but none exist. Perhaps a missing module?\n";
+    break;
+  default:
+    mesg = "Unknown error.\n";
+    break;
+  }
+
+  return Result{.success = false, .failure_message = eastl::move(mesg)};
+}
 } // namespace kuribo

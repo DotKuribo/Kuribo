@@ -1,4 +1,6 @@
-#define KURIBO_ENABLE_LOG
+#ifndef KURIBO_ENABLE_LOG
+#define KURIBO_ENABLE_LOG 1
+#endif
 
 #include "system/memory.hxx"
 #include <EASTL/array.h>
@@ -108,17 +110,34 @@ void comet_app_install(void* image, void* vaddr_load, uint32_t load_size) {
 
     KURIBO_PRINTF("Loaded module. Size: %i, rsize: %i\n", size, rsize);
 
-    auto* kxe = new kuribo::KuriboModule(kxmodule.get(), size,
-                                         &kuribo::mem::GetDefaultHeap());
-    KURIBO_PRINTF("PROLOGUE: %p\n", kxe->mKXE.prologue);
+    kuribo::kxer::LoadedKXE kxe;
+    kuribo::KuriboModuleLoader::Result result =
+        kuribo::KuriboModuleLoader::tryLoad(
+            kxmodule.get(), size, &kuribo::mem::GetDefaultHeap(), kxe);
+    KURIBO_PRINTF("PROLOGUE: %p\n", kxe.prologue);
 
-    if (kxe->mKXE.prologue == nullptr) {
+    if (!result.success) {
+      eastl::string crash_message = "Failed to load module ";
+      crash_message += file.getName();
+      crash_message += ":\n";
+      crash_message += result.failure_message;
+      kuribo::io::OSFatal(crash_message.c_str());
+      return; // Not reached
+    }
+
+    // Last minute check. There should never be a success state with a null
+    // prologue!
+    if (kxe.prologue == nullptr) {
       KURIBO_PRINTF("Cannot load %s: Prologue is null\n", file.getName());
+
       continue;
     }
 
-    PrintModuleInfo(kxe->mKXE.prologue);
-    LinkModule(kxe->mKXE.prologue, kxe->mKXE.data.get());
+    PrintModuleInfo(kxe.prologue);
+    LinkModule(kxe.prologue, kxe.data.get());
+
+    // On sucess, data lives forever
+    kxe.data.release();
 
     KURIBO_PRINTF("FINISHED\n");
   }

@@ -59,6 +59,12 @@ struct unique_ptr {
     rhs.mObj = nullptr;
   }
 
+  TObject* release() {
+    TObject* result = mObj;
+    mObj = nullptr;
+    return result;
+  }
+
   void reset() {
     if (mObj == nullptr)
       return;

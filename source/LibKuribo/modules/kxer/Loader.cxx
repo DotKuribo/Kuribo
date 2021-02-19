@@ -84,6 +84,8 @@ handleRelocation(const kx::bin::Relocation* reloc, u8* pCode, u8* pImports,
         tbl[reloc->source_offset].crc32);
     if (resolved == 0) {
       KURIBO_LOG("Failed to link: unknown symbol!\n");
+      if (param.invalid_symbol != nullptr)
+        *param.invalid_symbol = symbol;
       return LoadResult::BadReloc;
     }
     source = resolved + reloc->source_addend;
