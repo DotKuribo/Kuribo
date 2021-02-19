@@ -112,6 +112,11 @@ void comet_app_install(void* image, void* vaddr_load, uint32_t load_size) {
                                          &kuribo::mem::GetDefaultHeap());
     KURIBO_PRINTF("PROLOGUE: %p\n", kxe->mKXE.prologue);
 
+    if (kxe->mKXE.prologue == nullptr) {
+      KURIBO_PRINTF("Cannot load %s: Prologue is null\n", file.getName());
+      continue;
+    }
+
     PrintModuleInfo(kxe->mKXE.prologue);
     LinkModule(kxe->mKXE.prologue, kxe->mKXE.data.get());
 

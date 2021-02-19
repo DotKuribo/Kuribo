@@ -158,7 +158,12 @@ handleRelocations(const kx::bin::Relocation* pRelocs, u32 reloc_size, u8* pCode,
        reinterpret_cast<const u8*>(reloc) <
        reinterpret_cast<const u8*>(pRelocs) + reloc_size;
        ++reloc) {
-    KURIBO_LOG("Handling reloc..\n");
+    KURIBO_LOG("Handling reloc %p out of %p\n", reloc,
+               reinterpret_cast<const u8*>(pRelocs) + reloc_size);
+    if (reloc->affected_offset & 0xFFFF'0000) {
+      KURIBO_PRINTF("!!! SKIPPING INVALID RELOCATION\n");
+      continue;
+    }
     const auto result =
         handleRelocation(reloc, pCode, pImports, pHeader, param);
     if (result != LoadResult::Success)
