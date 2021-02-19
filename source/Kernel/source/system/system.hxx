@@ -11,7 +11,6 @@
 #include "core/sync.hxx"
 #include "util/deferred.hxx"
 
-#include "modules/Project.hxx"
 #include "system/memory.hxx"
 
 namespace kuribo {

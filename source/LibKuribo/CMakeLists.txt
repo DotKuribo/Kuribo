@@ -7,8 +7,6 @@ add_library(LibKuribo
 	"modules/kxer/Loader.cxx"
 	"modules/kxer/Module.hxx"	
 	"modules/kxer/Module.cxx"
-	"modules/Project.hxx"
-	"modules/Project.cxx"
 	"modules/SymbolManager.hxx"
 	"modules/SymbolManager.cxx"
 	"modules/SymbolManager.cxx"

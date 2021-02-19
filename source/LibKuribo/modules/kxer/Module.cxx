@@ -1,5 +1,4 @@
 #include "Module.hxx"
-#include "modules/Project.hxx"
 #include "modules/kxer/Loader.hxx"
 
 namespace kuribo {
@@ -42,17 +41,6 @@ KuriboModule::KuriboModule(const u8* buf, const u32 size, mem::Heap* heap) {
   KURIBO_ASSERT(succ == kxer::LoadResult::Success);
   KURIBO_ASSERT(mKXE.data);
   KURIBO_ASSERT(mKXE.prologue);
-}
-
-int KuriboModule::prologue(int type, __kuribo_module_ctx_t* interop) {
-  if (mKXE.prologue == nullptr)
-    return KURIBO_EXIT_FAILURE;
-
-  KURIBO_SCOPED_LOG("KURIBO Module: Prologue call");
-  KURIBO_LOG("Type: %u, interop: %p\n", (u32)type, interop);
-  KURIBO_PRINTF("PROLOGUE: %p\n", mKXE.prologue);
-
-  return mKXE.prologue(type, interop);
 }
 
 } // namespace kuribo
