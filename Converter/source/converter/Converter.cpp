@@ -121,6 +121,7 @@ bool Converter::process(std::vector<u8>& buf) {
       printf("Invalid relocation against section %u: %s\n",
              (unsigned)entry.section,
              symbol ? symbol->c_str() : "NO SYMBOLNAME");
+      return std::nullopt;
     }
     // assert(section_offsets[entry.section] != ~0u);
     const auto section_start = section_offsets[entry.section] - header_size;

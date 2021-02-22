@@ -67,7 +67,7 @@ bool RelocationExtractor::processRelocationSection(
       auto wrapped_source = mRemapper(source, &name);
 
       if (!wrapped_affected.has_value() || !wrapped_source.has_value()) {
-        return false;
+        continue; // skip over relocations to .mwcats
       }
 
       affected = wrapped_affected.value();
