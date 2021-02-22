@@ -85,9 +85,9 @@ static inline void __kuribo_on_detach() {
 
 #endif
 
-// #ifdef __CWCC__
-// #define _start __start
-// #endif
+#ifdef __CWCC__
+#define _start __start
+#endif
 
 #ifdef KURIBO_MODULE_BEGIN
 #undef KURIBO_MODULE_BEGIN

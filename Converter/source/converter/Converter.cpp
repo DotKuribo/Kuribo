@@ -75,7 +75,11 @@ bool Converter::process(std::vector<u8>& buf) {
       std::span<u8>{buf.data() + header_size, buf.data() + buf.size()},
       max_align);
 
-  if (auto kxMain = lookup("_start"); kxMain.has_value()) {
+  auto kxMain = lookup("_start");
+  if (!kxMain.has_value()) {
+    kxMain = lookup("__start");
+  }
+  if (kxMain.has_value()) {
     // Section start relative to code start
     const auto section_start = section_offsets[kxMain->section] - header_size;
     header.entry_point_offset =
