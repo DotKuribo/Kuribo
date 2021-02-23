@@ -1,3 +1,4 @@
+#include <Common/compiler/ppc.hxx>
 #include <EASTL/unique_ptr.h>
 #include <core/patch.hxx>
 #include <modules/SymbolManager.hxx>
@@ -38,10 +39,17 @@ decompressSection(const LoadParam& param, u32 file_size,
   return pBuf;
 }
 
-kuribo::kxer::LoadResult
-handleRelocation(const kx::bin::Relocation* reloc, u8* pCode, u8* pImports,
-                 const kx::bin::Header* pHeader,
-                 const kuribo::kxer::LoadParam& param) {
+struct EvilReloc {
+  D_Form lis;
+  u32 original;
+  u32 branch_back;
+};
+
+kuribo::kxer::LoadResult handleRelocation(const kx::bin::Relocation* reloc,
+                                          u8* pCode, u8* pImports,
+                                          const kx::bin::Header* pHeader,
+                                          const kuribo::kxer::LoadParam& param,
+                                          EvilReloc*& evil_relocs) {
   KURIBO_ASSERT(pCode);
   union addr {
     u32 d32;
@@ -139,6 +147,31 @@ handleRelocation(const kx::bin::Relocation* reloc, u8* pCode, u8* pImports,
     *affected.p32 = source - affected.d32;
     break;
   }
+  case 109: {
+    KURIBO_PRINTF("HANDLING 109\n");
+
+    // Awful hack to add quick support for EMB SDATA relocs
+    // R12 *might* not be safe, still...
+    EvilReloc& tmp = *(evil_relocs++);
+    tmp.lis.InstructionID = PPC_OP_ADDIS;
+    tmp.lis.Destination = 12;
+    tmp.lis.Source = 0;
+    tmp.lis.SIMM = (source >> 16) & 0xffff;
+
+    tmp.original = *affected.p32;
+    (u16&)tmp.original |= 12; // r12
+    ((u16*)&tmp.original)[1] = source & 0xffff;
+    {
+      const u32 offset = 4 + affected.d32 - (u32)&tmp.branch_back;
+      tmp.branch_back = ((offset & 0x3ffffff) | 0x48000000);
+    }
+    {
+      const u32 offset = ((u32)&tmp.lis) - affected.d32;
+      *affected.p32 = ((offset & 0x3ffffff) | 0x48000000);
+    }
+
+    break;
+  }
   default:
     KURIBO_LOG("Invalid relocation: %u\n", reloc->r_type);
     return LoadResult::BadReloc;
@@ -156,6 +189,17 @@ kuribo::kxer::LoadResult
 handleRelocations(const kx::bin::Relocation* pRelocs, u32 reloc_size, u8* pCode,
                   u8* pImports, const kx::bin::Header* pHeader,
                   const kuribo::kxer::LoadParam& param) {
+  u32 evil_relocs_count = 0;
+  for (const auto* reloc = pRelocs;
+       reinterpret_cast<const u8*>(reloc) <
+       reinterpret_cast<const u8*>(pRelocs) + reloc_size;
+       ++reloc) {
+    evil_relocs_count += reloc->r_type == 109;
+  }
+
+  // XXX: This is just a memory leak with this hack.
+  EvilReloc* evil_relocs = new EvilReloc[evil_relocs_count];
+
   for (const auto* reloc = pRelocs;
        reinterpret_cast<const u8*>(reloc) <
        reinterpret_cast<const u8*>(pRelocs) + reloc_size;
@@ -167,7 +211,7 @@ handleRelocations(const kx::bin::Relocation* pRelocs, u32 reloc_size, u8* pCode,
       continue;
     }
     const auto result =
-        handleRelocation(reloc, pCode, pImports, pHeader, param);
+        handleRelocation(reloc, pCode, pImports, pHeader, param, evil_relocs);
     if (result != LoadResult::Success)
       return result;
   }
