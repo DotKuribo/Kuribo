@@ -61,32 +61,10 @@ void UnlinkModule(kuribo_module_prologue prologue) {
   prologue(KURIBO_REASON_UNLOAD, &ctx);
 }
 
-void comet_app_install(void* image, void* vaddr_load, uint32_t load_size) {
-  KURIBO_SCOPED_LOG("Installing...");
+eastl::vector<kuribo::kxer::LoadedKXE>* spLoadedModules;
+bool sReloadPending = false;
 
-  constexpr u32 size = 923'448 / 2;
-
-#ifdef _WIN32
-  static char GLOBAL_HEAP[size];
-  char* base_addr = &GLOBAL_HEAP[0];
-#else
-  void* our_heap = *(void**)(0x802A40A4);
-  char* base_addr =
-      ((char* (*)(u32, void*, u32))0x80229DE0)(size, our_heap, 32);
-  KURIBO_PRINTF("ALLOCATED BLOCK AT: %p\n", base_addr);
-#endif
-
-  kuribo::mem::Init(base_addr, size, nullptr, 0);
-  // kuribo::mem::AddRegion((void*)0x8042EB00, 923448, false);
-
-  kuribo::System::createSystem();
-  kuribo::SymbolManager::initializeStaticInstance();
-  kuribo::kxRegisterProcedure("OSReport", FFI_NAME(os_report));
-  kuribo::kxRegisterProcedure("kxGeckoJitCompileCodes",
-                              (u32)&kuribo::kxGeckoJitCompileCodes);
-
-  kuribo::io::fs::InitFilesystem();
-
+void LoadModulesOffDisc() {
   auto path = kuribo::io::fs::Path("Kuribo!/Mods/");
 
   if (path.getNode() == nullptr) {
@@ -110,7 +88,7 @@ void comet_app_install(void* image, void* vaddr_load, uint32_t load_size) {
 
     KURIBO_PRINTF("Loaded module. Size: %i, rsize: %i\n", size, rsize);
 
-    kuribo::kxer::LoadedKXE kxe;
+    kuribo::kxer::LoadedKXE& kxe = spLoadedModules->emplace_back();
     kuribo::KuriboModuleLoader::Result result =
         kuribo::KuriboModuleLoader::tryLoad(
             kxmodule.get(), size, &kuribo::mem::GetDefaultHeap(), kxe);
@@ -136,9 +114,62 @@ void comet_app_install(void* image, void* vaddr_load, uint32_t load_size) {
     PrintModuleInfo(kxe.prologue);
     LinkModule(kxe.prologue, kxe.data.get());
 
-    // On sucess, data lives forever
-    kxe.data.release();
-
     KURIBO_PRINTF("FINISHED\n");
   }
+}
+
+void Reload() {
+  KURIBO_PRINTF("Reloading..\n");
+  for (auto& mod : *spLoadedModules) {
+    UnlinkModule(mod.prologue);
+  }
+  spLoadedModules->clear();
+  LoadModulesOffDisc();
+}
+void HandleReload() {
+  if (sReloadPending) {
+    sReloadPending = false;
+    Reload();
+  }
+}
+
+void QueueReload() { sReloadPending = true; }
+
+void SetEventHandlerAddress(u32 address) {
+  KURIBO_PRINTF("Setting event handler..\n");
+  kuribo::directBranch((void*)address, (void*)(u32)&HandleReload);
+}
+
+void comet_app_install(void* image, void* vaddr_load, uint32_t load_size) {
+  KURIBO_SCOPED_LOG("Installing...");
+
+  constexpr u32 size = 923'448 / 2;
+
+#ifdef _WIN32
+  static char GLOBAL_HEAP[size];
+  char* base_addr = &GLOBAL_HEAP[0];
+#else
+  void* our_heap = *(void**)(0x802A40A4);
+  char* base_addr =
+      ((char* (*)(u32, void*, u32))0x80229DE0)(size, our_heap, 32);
+  KURIBO_PRINTF("ALLOCATED BLOCK AT: %p\n", base_addr);
+#endif
+
+  kuribo::mem::Init(base_addr, size, nullptr, 0);
+  // kuribo::mem::AddRegion((void*)0x8042EB00, 923448, false);
+
+  kuribo::System::createSystem();
+  kuribo::SymbolManager::initializeStaticInstance();
+  kuribo::kxRegisterProcedure("OSReport", FFI_NAME(os_report));
+  kuribo::kxRegisterProcedure("kxGeckoJitCompileCodes",
+                              (u32)&kuribo::kxGeckoJitCompileCodes);
+
+  kuribo::kxRegisterProcedure("kxSystemReloadAllModules", (u32)&QueueReload);
+  kuribo::kxRegisterProcedure("kxSystemSetEventCaller", (u32)&SetEventHandlerAddress);
+
+  kuribo::io::fs::InitFilesystem();
+
+  spLoadedModules = new eastl::vector<kuribo::kxer::LoadedKXE>();
+
+  LoadModulesOffDisc();
 }

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common.h"
+
 union D_Form {
   struct {
 #ifdef _WIN32
