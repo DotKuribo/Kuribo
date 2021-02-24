@@ -56,7 +56,7 @@ static inline void __kuribo_on_attach(u32 start_addr) {
   __kuribo_ctors ctor_begin = (__kuribo_ctors)(ctor_begin_rel + start_addr);
   __kuribo_ctors ctor_end = (__kuribo_ctors)(ctor_end_rel + start_addr);
 
-  for (__kuribo_ctors f = ctor_begin; f < ctor_end; ++f) {
+  for (__kuribo_ctors f = ctor_begin; f < ctor_end && *f; ++f) {
     (*f)();
   }
 }
