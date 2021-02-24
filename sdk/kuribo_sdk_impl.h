@@ -4,6 +4,14 @@
 #include "kuribo_sdk/kuribo_internal_api.h"
 #include "kuribo_sdk/kuribo_types.h"
 
+#define __kuribo_mfmsr()                                                       \
+  ({                                                                           \
+    u32 _rval;                                                                 \
+    asm volatile("mfmsr %0" : "=r"(_rval));                                    \
+    _rval;                                                                     \
+  })
+#define __kuribo_mtmsr(val) asm volatile("mtmsr %0" : : "r"(val))
+
 /* @brief Fillin a simple metadata structure for a
  *        KURIBO_REASON_INQUIRE_META_DESC call.
  *
@@ -34,7 +42,7 @@ static inline int __kuribo_fillin_metadata_v0(
  */
 extern __kuribo_module_ctx_t __kuribo_ctx;
 
-#ifdef __CWCC__
+#ifndef KURIBO_NO_ABI_HELPERS
 typedef struct __kuribo_dtor_node {
   struct __kuribo_dtor_node* pred;
   void* dtor;
@@ -75,15 +83,35 @@ static inline void __kuribo_on_detach() {
     node->dtor = dtor;                                                         \
     node->obj = obj;                                                           \
     __kuribo_dtor_list = node;                                                 \
+  }                                                                            \
+  /* sizeof(__kuribo_guard) == 8 */                                            \
+  struct __kuribo_guard {                                                      \
+    u8 is_init; /* This byte must be here, the rest are free */                \
+    u8 _pad[3];                                                                \
+                                                                               \
+    /* On PPC, we will just disable multitasking */                            \
+    u32 msr_save;                                                              \
+  };                                                                           \
+  int __cxa_guard_acquire(__kuribo_guard* guard) {                             \
+    const u32 msr = __kuribo_mfmsr();                                          \
+    __kuribo_mtmsr(msr & ~0x8000);                                             \
+                                                                               \
+    guard->is_init = 0;                                                        \
+    guard->msr_save = msr;                                                     \
+                                                                               \
+    return 1;                                                                  \
+  }                                                                            \
+  void __cxa_guard_release(__kuribo_guard* guard) {                            \
+    __kuribo_mtmsr(guard->msr_save);                                           \
   }
 
-#else
+#else // KURIBO_NO_ABI_HELPERS
 
 #define __kuribo_on_attach(start_addr)
 #define __kuribo_on_detach()
 #define KURIBO_ATTACH_DETATCH_HOOKS_IMPL
 
-#endif
+#endif // KURIBO_NO_ABI_HELPERS
 
 #ifdef __CWCC__
 #define _start __start
