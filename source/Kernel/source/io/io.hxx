@@ -2,6 +2,7 @@
 
 #include "api/HostInterop.h"
 #include "common.h"
+#include "filesystem.hxx"
 #include "system/memory.hxx"
 
 #include <EASTL/string.h>
@@ -22,7 +23,7 @@ namespace dvd {
 using entry = s32;
 constexpr bool entryValid(entry e) { return e >= 0; }
 inline entry queryEntryNum(const char* path) {
-  return ((s32(*)(const char*))FFI_NAME(dvd_path_to_entrynum))(path);
+  return fs::Path(path).getResolved();
 }
 inline bool open(low_dvd_Handle& handle, entry ent) {
 #ifdef _WIN32
