@@ -118,9 +118,11 @@ bool Converter::process(std::vector<u8>& buf) {
 
     // We only have one section (a CODE section)
     if (section_offsets[entry.section] == ~0u) {
-      printf("Invalid relocation against section %u: %s\n",
-             (unsigned)entry.section,
-             symbol ? symbol->c_str() : "NO SYMBOLNAME");
+      const std::string sec_name = mElf.sections[entry.section]->get_name();
+      if (sec_name != ".mwcats.text")
+        printf("Invalid relocation against section %u %s: %s\n",
+               (unsigned)entry.section, sec_name.c_str(),
+               symbol ? symbol->c_str() : "NO SYMBOLNAME");
       return std::nullopt;
     }
     // assert(section_offsets[entry.section] != ~0u);
