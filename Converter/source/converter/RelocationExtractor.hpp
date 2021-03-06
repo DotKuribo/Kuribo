@@ -2,6 +2,7 @@
 
 #include "elfio/elfio.hpp"
 #include "format/Binary.hpp"
+#include <assert.h>
 #include <functional>
 #include <optional>
 #include <vector>
@@ -10,7 +11,11 @@ namespace kx {
 
 struct Relocation : public bin::Relocation {
   Relocation() = default;
-  Relocation(bin::Relocation r) { static_cast<bin::Relocation&>(*this) = r; }
+  Relocation(bin::Relocation r) {
+    assert((r.affected_offset & 0x8000'0000) == 0);
+
+    static_cast<bin::Relocation&>(*this) = r;
+  }
   // DEBUG
   std::string affected_symbol;
   std::string source_symbol;
