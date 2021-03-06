@@ -77,7 +77,7 @@ static inline void __kuribo_on_detach() {
 
 #define KURIBO_ATTACH_DETATCH_HOOKS_IMPL                                       \
   __kuribo_dtor_node* __kuribo_dtor_list;                                      \
-  void __register_global_object(void* obj, void* dtor,                         \
+  KURIBO_EXTERN_C void __register_global_object(void* obj, void* dtor,                         \
                                 __kuribo_dtor_node* node) {                    \
     node->pred = __kuribo_dtor_list;                                           \
     node->dtor = dtor;                                                         \
@@ -92,7 +92,7 @@ static inline void __kuribo_on_detach() {
     /* On PPC, we will just disable multitasking */                            \
     u32 msr_save;                                                              \
   };                                                                           \
-  int __cxa_guard_acquire(__kuribo_guard* guard) {                             \
+  KURIBO_EXTERN_C int __cxa_guard_acquire(__kuribo_guard* guard) {                             \
     const u32 msr = __kuribo_mfmsr();                                          \
     __kuribo_mtmsr(msr & ~0x8000);                                             \
                                                                                \
@@ -101,7 +101,7 @@ static inline void __kuribo_on_detach() {
                                                                                \
     return 1;                                                                  \
   }                                                                            \
-  void __cxa_guard_release(__kuribo_guard* guard) {                            \
+  KURIBO_EXTERN_C void __cxa_guard_release(__kuribo_guard* guard) {                            \
     __kuribo_mtmsr(guard->msr_save);                                           \
   }
 
