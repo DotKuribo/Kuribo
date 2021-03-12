@@ -37,6 +37,10 @@ extern const char* gStrings;
 
 void InitFilesystem();
 
+bool IsEntryValid(u32 entry_id) {
+  return entry_id < gNodes[0].folder.sibling_next;
+}
+
 //! Unlike a STD path, a fs::Path cannot point to a file that does not exist.
 //! Construction searches the disc.
 class Path {

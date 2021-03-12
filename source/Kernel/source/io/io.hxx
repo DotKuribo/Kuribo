@@ -17,19 +17,35 @@ struct low_dvd_Handle {
   u32 _00[12];
   u32 addr;
   u32 len;
-  u32 _38;
+  void* result_callback;
 };
 namespace dvd {
 using entry = s32;
-constexpr bool entryValid(entry e) { return e >= 0; }
+constexpr bool entryValid(entry e) { return fs::IsEntryValid(e); }
 inline entry queryEntryNum(const char* path) {
   return fs::Path(path).getResolved();
 }
 inline bool open(low_dvd_Handle& handle, entry ent) {
-#ifdef _WIN32
-  return false;
-#endif
-  return ((s32(*)(s32, low_dvd_Handle*))FFI_NAME(dvd_fast_open))(ent, &handle);
+  if (!fs::IsEntryValid(ent))
+    return false;
+
+  {
+    const fs::Path path(ent);
+    if (path.isFolder())
+      return false;
+
+    {
+      const auto& file_info = path.getNode()->file;
+
+      handle.addr = file_info.offset;
+      handle.len = file_info.size;
+    }
+  }
+
+  handle.result_callback = nullptr;
+  handle._00[3] = 0;
+
+  return true;
 }
 inline s32 read(low_dvd_Handle& handle, void* buf, int len, int offset) {
   return ((s32(*)(low_dvd_Handle*, void*, int, int, int))FFI_NAME(
