@@ -22,7 +22,9 @@
 #include <modules/SymbolManager.hxx>
 #include <modules/kxer/Module.hxx>
 
-void PrintModuleInfo(kuribo_module_prologue prologue) {
+namespace modules {
+
+void DumpInfo(kuribo_module_prologue prologue) {
   __kuribo_module_ctx_t ctx;
   ctx.core_version = KURIBO_CORE_VERSION;
 
@@ -42,7 +44,7 @@ void PrintModuleInfo(kuribo_module_prologue prologue) {
   KURIBO_PRINTF("~~~~~~~~~~~~~~~~~~~~~~~\n");
 }
 
-void LinkModule(kuribo_module_prologue prologue, void* start_address) {
+void Enable(kuribo_module_prologue prologue, void* start_address) {
   __kuribo_module_ctx_t ctx;
   ctx.core_version = KURIBO_CORE_VERSION;
 
@@ -54,12 +56,14 @@ void LinkModule(kuribo_module_prologue prologue, void* start_address) {
   prologue(KURIBO_REASON_LOAD, &ctx);
 }
 
-void UnlinkModule(kuribo_module_prologue prologue) {
+void Disable(kuribo_module_prologue prologue) {
   __kuribo_module_ctx_t ctx;
   ctx.core_version = KURIBO_CORE_VERSION;
 
   prologue(KURIBO_REASON_UNLOAD, &ctx);
 }
+
+} // namespace modules
 
 eastl::vector<kuribo::kxer::LoadedKXE>* spLoadedModules;
 bool sReloadPending = false;
@@ -92,7 +96,9 @@ void LoadModulesOffDisc() {
     kuribo::KuriboModuleLoader::Result result =
         kuribo::KuriboModuleLoader::tryLoad(
             kxmodule.get(), size, &kuribo::mem::GetDefaultHeap(), kxe);
+#ifdef KURIBO_MEM_DEBUG
     KURIBO_PRINTF("PROLOGUE: %p\n", kxe.prologue);
+#endif
 
     if (!result.success) {
       eastl::string crash_message = "Failed to load module ";
@@ -111,8 +117,8 @@ void LoadModulesOffDisc() {
       continue;
     }
 
-    PrintModuleInfo(kxe.prologue);
-    LinkModule(kxe.prologue, kxe.data.get());
+    modules::DumpInfo(kxe.prologue);
+    modules::Enable(kxe.prologue, kxe.data.get());
 
     KURIBO_PRINTF("FINISHED\n");
   }
@@ -121,7 +127,7 @@ void LoadModulesOffDisc() {
 void Reload() {
   KURIBO_PRINTF("Reloading..\n");
   for (auto& mod : *spLoadedModules) {
-    UnlinkModule(mod.prologue);
+    modules::Disable(mod.prologue);
   }
   spLoadedModules->clear();
   LoadModulesOffDisc();
@@ -135,37 +141,50 @@ void HandleReload() {
 
 void QueueReload() { sReloadPending = true; }
 
+void PrintLoadedModules() {
+  for (auto& mod : *spLoadedModules) {
+    modules::DumpInfo(mod.prologue);
+  }
+}
+
 void SetEventHandlerAddress(u32 address) {
   KURIBO_PRINTF("Setting event handler..\n");
   kuribo::directBranch((void*)address, (void*)(u32)&HandleReload);
 }
 
+Arena GetSystemArena() {
+#ifdef _WIN32
+  constexpr int size = float(923'448) * .7f;
+  static char GLOBAL_HEAP[size];
+
+  return {.base_address = &GLOBAL_HEAP[0], .size = sizeof(GLOBAL_HEAP)};
+#else
+  return HostGetSystemArena();
+#endif
+}
+
 void comet_app_install(void* image, void* vaddr_load, uint32_t load_size) {
   KURIBO_SCOPED_LOG("Installing...");
 
-  constexpr u32 size = 923'448 / 2;
-
-#ifdef _WIN32
-  static char GLOBAL_HEAP[size];
-  char* base_addr = &GLOBAL_HEAP[0];
-#else
-  void* our_heap = *(void**)(0x802A40A4);
-  char* base_addr =
-      ((char* (*)(u32, void*, u32))0x80229DE0)(size, our_heap, 32);
-  KURIBO_PRINTF("ALLOCATED BLOCK AT: %p\n", base_addr);
-#endif
-
-  kuribo::mem::Init(base_addr, size, nullptr, 0);
-  // kuribo::mem::AddRegion((void*)0x8042EB00, 923448, false);
+  {
+    const Arena sys_arena = GetSystemArena();
+    kuribo::mem::Init(sys_arena.base_address, sys_arena.size, nullptr, 0);
+  }
 
   kuribo::System::createSystem();
-  kuribo::SymbolManager::initializeStaticInstance();
-  kuribo::kxRegisterProcedure("OSReport", FFI_NAME(os_report));
-  kuribo::kxRegisterProcedure("kxGeckoJitCompileCodes",
-                              (u32)&kuribo::kxGeckoJitCompileCodes);
 
-  kuribo::kxRegisterProcedure("kxSystemReloadAllModules", (u32)&QueueReload);
-  kuribo::kxRegisterProcedure("kxSystemSetEventCaller", (u32)&SetEventHandlerAddress);
+  {
+    kuribo::SymbolManager::initializeStaticInstance();
+    kuribo::kxRegisterProcedure("OSReport", FFI_NAME(os_report));
+    kuribo::kxRegisterProcedure("kxGeckoJitCompileCodes",
+                                (u32)&kuribo::kxGeckoJitCompileCodes);
+
+    kuribo::kxRegisterProcedure("kxSystemReloadAllModules", (u32)&QueueReload);
+    kuribo::kxRegisterProcedure("kxSystemSetEventCaller",
+                                (u32)&SetEventHandlerAddress);
+    kuribo::kxRegisterProcedure("kxSystemPrintLoadedModules",
+                                (u32)&PrintLoadedModules);
+  }
 
   kuribo::io::fs::InitFilesystem();
 

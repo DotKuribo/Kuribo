@@ -31,3 +31,10 @@ EXTERN_SYM_DECL(dvd_close)
 #define KURIBO_SET_DVD(read_prio, close)                                       \
   EXTERN_SYM_DEF(dvd_read_prio, read_prio)                                     \
   EXTERN_SYM_DEF(dvd_close, close)
+
+typedef struct Arena {
+  char* base_address;
+  uint32_t size;
+} Arena;
+
+EXTERN_C Arena HostGetSystemArena();

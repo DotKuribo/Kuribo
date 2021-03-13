@@ -37,7 +37,7 @@ extern const char* gStrings;
 
 void InitFilesystem();
 
-bool IsEntryValid(u32 entry_id) {
+inline bool IsEntryValid(u32 entry_id) {
   return entry_id < gNodes[0].folder.sibling_next;
 }
 

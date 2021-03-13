@@ -20,11 +20,13 @@ struct low_dvd_Handle {
   void* result_callback;
 };
 namespace dvd {
+
 using entry = s32;
-constexpr bool entryValid(entry e) { return fs::IsEntryValid(e); }
+
 inline entry queryEntryNum(const char* path) {
   return fs::Path(path).getResolved();
 }
+
 inline bool open(low_dvd_Handle& handle, entry ent) {
   if (!fs::IsEntryValid(ent))
     return false;

@@ -256,6 +256,10 @@ LoadResult Load(const LoadParam& param, LoadedKXE& out) {
     return LoadResult::InvalidFile;
   }
 
+#ifdef KURIBO_MEM_DEBUG
+  KURIBO_PRINTF("REBASE ADDRESS: %p\n", pCode.get());
+#endif
+
   u32 reloc_size = 0;
   mem::unique_ptr<u8> pRelocs = decompressSection(
       param, param.binary.size(), *pHeader, pHeader->relocations, &reloc_size);
