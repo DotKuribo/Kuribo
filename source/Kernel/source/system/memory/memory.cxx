@@ -69,10 +69,10 @@ void _free(void* p) {
     kuribo::mem::Free(p);
 }
 
-void* operator new(u32 size) {
+void* operator new(size_t size) {
   return kuribo::mem::Alloc(size, kuribo::mem::GetDefaultHeap());
 }
-void* operator new[](u32 size) { return operator new(size); }
+void* operator new[](size_t size) { return operator new(size); }
 
 void operator delete(void* p) {
   if (p)
@@ -84,8 +84,8 @@ void operator delete[](void* p) {
 }
 
 #if __cplusplus >= 201402L || defined(_WIN32)
-void operator delete(void* ptr, u32) { operator delete(ptr); }
-void operator delete[](void* ptr, u32) { operator delete(ptr); }
+void operator delete(void* ptr, size_t) { operator delete(ptr); }
+void operator delete[](void* ptr, size_t) { operator delete(ptr); }
 #endif
 
 // EASTL
