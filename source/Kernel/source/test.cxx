@@ -2,6 +2,8 @@
 #define KURIBO_ENABLE_LOG 1
 #endif
 
+#include "module.hxx"
+
 #include "system/memory.hxx"
 #include <EASTL/array.h>
 #include <EASTL/string.h>
@@ -22,48 +24,6 @@
 #include <modules/SymbolManager.hxx>
 #include <modules/kxer/Module.hxx>
 
-namespace modules {
-
-void DumpInfo(kuribo_module_prologue prologue) {
-  __kuribo_module_ctx_t ctx;
-  ctx.core_version = KURIBO_CORE_VERSION;
-
-  __kuribo_simple_meta_v0 meta;
-  ctx.udata.fillin_meta = &meta;
-
-  prologue(KURIBO_REASON_INQUIRE_META_DESC, &ctx);
-
-  KURIBO_PRINTF("~~~~~~~~~~~~~~~~~~~~~~~\n");
-  KURIBO_PRINTF("[KURIBO] Loading module\n");
-  KURIBO_PRINTF("         Name:     \t%s\n", meta.module_name);
-  KURIBO_PRINTF("         Author:   \t%s\n", meta.module_author);
-  KURIBO_PRINTF("         Version:  \t%s\n", meta.module_version);
-  KURIBO_PRINTF("                     \n");
-  KURIBO_PRINTF("         Built:    \t%s\n", meta.build_date);
-  KURIBO_PRINTF("         Compiler: \t%s\n", meta.compiler_name);
-  KURIBO_PRINTF("~~~~~~~~~~~~~~~~~~~~~~~\n");
-}
-
-void Enable(kuribo_module_prologue prologue, void* start_address) {
-  __kuribo_module_ctx_t ctx;
-  ctx.core_version = KURIBO_CORE_VERSION;
-
-  ctx.get_procedure = nullptr;
-  ctx.register_procedure = nullptr;
-
-  ctx.start_address = reinterpret_cast<char*>(start_address);
-
-  prologue(KURIBO_REASON_LOAD, &ctx);
-}
-
-void Disable(kuribo_module_prologue prologue) {
-  __kuribo_module_ctx_t ctx;
-  ctx.core_version = KURIBO_CORE_VERSION;
-
-  prologue(KURIBO_REASON_UNLOAD, &ctx);
-}
-
-} // namespace modules
 
 eastl::vector<kuribo::kxer::LoadedKXE>* spLoadedModules;
 bool sReloadPending = false;
@@ -163,11 +123,29 @@ Arena GetSystemArena() {
 #endif
 }
 
+static void ExposeSdk() {
+  kuribo::kxRegisterProcedure("OSReport", FFI_NAME(os_report));
+}
+
+static void ExposeGeckoJit() {
+  kuribo::kxRegisterProcedure("kxGeckoJitCompileCodes",
+                              (u32)&kuribo::kxGeckoJitCompileCodes);
+}
+
+static void ExposeModules() {
+  kuribo::kxRegisterProcedure("kxSystemReloadAllModules", (u32)&QueueReload);
+  kuribo::kxRegisterProcedure("kxSystemSetEventCaller",
+                              (u32)&SetEventHandlerAddress);
+  kuribo::kxRegisterProcedure("kxSystemPrintLoadedModules",
+                              (u32)&PrintLoadedModules);
+}
+
 void comet_app_install(void* image, void* vaddr_load, uint32_t load_size) {
   KURIBO_SCOPED_LOG("Installing...");
 
   {
     const Arena sys_arena = GetSystemArena();
+    KURIBO_PRINTF("ARENA STARTS AT %p\n", sys_arena.base_address);
     kuribo::mem::Init(sys_arena.base_address, sys_arena.size, nullptr, 0);
   }
 
@@ -175,15 +153,9 @@ void comet_app_install(void* image, void* vaddr_load, uint32_t load_size) {
 
   {
     kuribo::SymbolManager::initializeStaticInstance();
-    kuribo::kxRegisterProcedure("OSReport", FFI_NAME(os_report));
-    kuribo::kxRegisterProcedure("kxGeckoJitCompileCodes",
-                                (u32)&kuribo::kxGeckoJitCompileCodes);
-
-    kuribo::kxRegisterProcedure("kxSystemReloadAllModules", (u32)&QueueReload);
-    kuribo::kxRegisterProcedure("kxSystemSetEventCaller",
-                                (u32)&SetEventHandlerAddress);
-    kuribo::kxRegisterProcedure("kxSystemPrintLoadedModules",
-                                (u32)&PrintLoadedModules);
+    ExposeSdk();
+    ExposeGeckoJit();
+    ExposeModules();
   }
 
   kuribo::io::fs::InitFilesystem();

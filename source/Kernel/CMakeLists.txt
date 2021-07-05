@@ -26,7 +26,7 @@ add_executable (KuriboKernel
 	"source/test.cxx"
 
 	"source/vendor/libc.c"
-)
+ "source/module.hxx")
 
 target_include_directories(KuriboKernel PRIVATE "source" "source/vendor" "../" "../../" "../../sdk" "../Common" "../Common/vendor" "../LibKuribo")
 
