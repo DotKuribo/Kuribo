@@ -1,3 +1,5 @@
+#ifdef GECKO_JIT_TEST
+
 #define KURIBO_ENABLE_LOG
 
 #include <array>
@@ -655,3 +657,5 @@ void GeckoJIT_RunTests() {
   *((void**)0x80000FF8) = pSimulatedHeap;
 #endif
 }
+
+#endif

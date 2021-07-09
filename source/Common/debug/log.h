@@ -109,7 +109,7 @@ public:
     }
   }
 
-private:
+public:
   const char* m_msg;
   u32 m_begin;
 #endif

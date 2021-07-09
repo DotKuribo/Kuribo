@@ -1,5 +1,6 @@
 #ifndef KURIBO_ENABLE_LOG
 #define KURIBO_ENABLE_LOG 1
+#define KURIBO_MEM_DEBUG 1
 #endif
 
 #include "module.hxx"
@@ -18,8 +19,6 @@
 
 #include <LibKuribo/filesystem.hxx>
 #include <io/io.hxx>
-
-#include "GeckoJIT/engine/compiler.hpp"
 
 #include <modules/SymbolManager.hxx>
 #include <modules/kxer/Module.hxx>
@@ -140,17 +139,15 @@ static void ExposeSdk() {
   kuribo::kxRegisterProcedure("OSReport", FFI_NAME(os_report));
 }
 
-static void ExposeGeckoJit() {
-  kuribo::kxRegisterProcedure("kxGeckoJitCompileCodes",
-                              (u32)&kuribo::kxGeckoJitCompileCodes);
-}
-
 static void ExposeModules() {
   kuribo::kxRegisterProcedure("kxSystemReloadAllModules", (u32)&QueueReload);
   kuribo::kxRegisterProcedure("kxSystemSetEventCaller",
                               (u32)&SetEventHandlerAddress);
   kuribo::kxRegisterProcedure("kxSystemPrintLoadedModules",
                               (u32)&PrintLoadedModules);
+
+  kuribo::kxRegisterProcedure("_ZN9ScopedLog10sLogIndentE",
+                              (u32)&ScopedLog::sLogIndent);
 }
 
 kuribo::DeferredInitialization<kuribo::mem::FreeListHeap> sModulesHeap;
@@ -173,7 +170,6 @@ void comet_app_install(void* image, void* vaddr_load, uint32_t load_size) {
   {
     kuribo::SymbolManager::initializeStaticInstance(sModulesHeap);
     ExposeSdk();
-    ExposeGeckoJit();
     ExposeModules();
   }
 

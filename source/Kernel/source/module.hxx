@@ -1,5 +1,6 @@
 #pragma once
 
+#include "LibKuribo/modules/SymbolManager.hxx"
 #include "common.h"
 #include "sdk/kuribo_sdk.h"
 #include <optional>
@@ -55,8 +56,8 @@ inline bool Enable(kuribo_module_prologue prologue, void* start_address) {
   __kuribo_module_ctx_t ctx;
   ctx.core_version = KURIBO_CORE_VERSION;
 
-  ctx.get_procedure = nullptr;
-  ctx.register_procedure = nullptr;
+  ctx.get_procedure = kuribo::kxGetProcedure;
+  ctx.register_procedure = kuribo::kxRegisterProcedure;
 
   ctx.start_address = reinterpret_cast<char*>(start_address);
 

@@ -37,14 +37,14 @@ if (KURIBO_BUILD_WII)
 		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${KERNEL_COMPILE}")
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${KERNEL_COMPILE}")
 
-		target_link_libraries(KuriboKernel Common GeckoJIT LibKuribo FallbackAllocator "${CMAKE_SOURCE_DIR}/Targets/libKuriboClang.a")
+		target_link_libraries(KuriboKernel Common LibKuribo FallbackAllocator "${CMAKE_SOURCE_DIR}/Targets/libKuriboClang.a")
 	else()
 		set(KERNEL_COMPILE "-Wno-multichar")
 
 		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${KERNEL_COMPILE}")
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${KERNEL_COMPILE}")
 
-		target_link_libraries(KuriboKernel Common GeckoJIT LibKuribo FallbackAllocator)
+		target_link_libraries(KuriboKernel Common LibKuribo FallbackAllocator)
 	endif()
 
 	add_custom_target(${PROJECT_NAME}.bin ALL DEPENDS ${PROJECT_NAME})
@@ -66,7 +66,6 @@ if (KURIBO_BUILD_WII)
 else()
 	target_link_libraries(KuriboKernel PUBLIC
 		Common
-		GeckoJIT
 		LibKuribo
 		FallbackAllocator
 	)

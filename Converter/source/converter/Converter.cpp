@@ -221,6 +221,23 @@ void Converter::fillInCodeSection(kx::bin::Header& header, u32 file_offset,
   header.code.alignment = align;
 }
 
+static bool IsSectionTypeCodeData(u32 type) {
+  if (type == SHT_PROGBITS)
+    return true;
+
+  // .init_array
+  if (type == SHT_INIT_ARRAY)
+    return true;
+
+  // .fini_array
+  if (type == SHT_FINI_ARRAY)
+    return true;
+
+
+  return false;
+}
+static bool IsSectionTypeBss(u32 type) { return type == SHT_NOBITS; }
+
 bool Converter::collectSections(std::vector<std::size_t>& section_offsets,
                                 u32& max_align, std::vector<u8>& buf) {
   for (int s_index = 0; s_index < mElf.sections.size(); ++s_index) {
@@ -240,17 +257,18 @@ bool Converter::collectSections(std::vector<std::size_t>& section_offsets,
     buf.resize(roundUp(buf.size(), align));
     const auto section_offset = buf.size();
     section_offsets.push_back(section_offset);
-    if (section.get_type() == SHT_PROGBITS) {
+
+    if (IsSectionTypeCodeData(section.get_type())) {
       buf.insert(buf.end(), section.get_data(),
                  section.get_data() + section.get_size());
-    } else if (section.get_type() == SHT_NOBITS) {
+    } else if (IsSectionTypeBss(section.get_type())) {
       buf.resize(buf.size() + section.get_size());
     } else {
       printf("Invalid section..\n");
       return false;
     }
 
-    if (section.get_name() == ".ctors") {
+    if (section.get_name() == ".ctors" || section.get_name() == ".init_array") {
       constexpr auto header_size = roundUp(sizeof(bin::Header), 32);
       mExplicitSymbols["__ctor_loc"] = section_offset - header_size;
       mExplicitSymbols["__ctor_end"] = buf.size() - header_size;
@@ -320,6 +338,9 @@ bool Converter::keep_section(const ELFIO::section& section) {
     return false;
   if (section.get_name() == ".comment")
     return false;
+
+  if (section.get_name() == ".init_array")
+    return true;
 
   return section.get_type() == SHT_PROGBITS || section.get_type() == SHT_NOBITS;
 }

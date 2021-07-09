@@ -14,7 +14,7 @@ set(WII_DEFINES "-O3 -DGEKKO -DKURIBO_PLATFORM_WII=1 -fno-exceptions -fno-rtti -
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${WII_DEFINES}")
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} ${WII_DEFINES}")
 
-set(WII_LINK " -flto -nostdlib -fuse-ld=lld -Wl,--gc-sections  -mllvm --march=ppc-linux-eabi -mllvm -mcpu=750 ")
+set(WII_LINK " -flto -nostdlib -fuse-ld=lld  -mllvm --march=ppc-linux-eabi -mllvm -mcpu=750 ")
 
 set(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} ${WII_LINK}")
 set(CMAKE_CXX_LINK_FLAGS "${CMAKE_CXX_LINK_FLAGS} ${WII_LINK}")
