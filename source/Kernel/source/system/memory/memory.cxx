@@ -6,10 +6,17 @@
 #include "FallbackAllocator/free_list_heap.hxx"
 
 namespace kuribo {
-
 namespace mem {
+
+Heap* sMem1Heap = nullptr;
+
 void* Alloc(u32 size, Heap& heap, u32 align) noexcept {
-  return heap.alloc(size > 8 ? size : 8, align);
+  if (void* buf = heap.alloc(size > 8 ? size : 8, align); buf != nullptr) {
+    return buf;
+  }
+
+  KURIBO_LOG("Failed to allocate\n");
+  return nullptr;
 }
 
 void Free(void* ptr, Heap& heap) { heap.free(ptr); }
@@ -24,22 +31,15 @@ void Free(void* ptr) {
   pHeader->heap->Free(ptr);
 }
 
-Heap* sMem1Heap = nullptr;
-Heap* sMem2Heap = nullptr;
 
-// For allocating heaps themselves
 char sSystemBuffer[1024];
 DeferredInitialization<FreeListHeap> sSystemAllocator;
 
-static void InitSystemAllocator() {
+
+void Init() {
   sSystemAllocator.initialize(sSystemBuffer, sizeof(sSystemBuffer));
-}
 
-void Init(char* mem1b, u32 mem1s) {
-  InitSystemAllocator();
-
-  sMem1Heap = new (&sSystemAllocator) FreeListHeap(mem1b, mem1s);
-  // sMem2Heap = new (&sSystemAllocator) FreeListHeap(mem2b, mem2s);
+  sMem1Heap = &static_cast<FreeListHeap&>(sSystemAllocator);
 }
 
 Heap& GetHeap(GlobalHeapType type) {

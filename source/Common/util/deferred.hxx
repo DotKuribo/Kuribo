@@ -25,6 +25,9 @@ template <typename T> struct DeferredInitialization {
   operator T&() { return *reinterpret_cast<T*>(&data); }
   operator const T&() const { return *reinterpret_cast<const T*>(&data); }
 
+  T& operator*() { return *reinterpret_cast<T*>(&data); }
+  const T& operator*() const { return *reinterpret_cast<const T*>(&data); }
+
   T* operator->() { return reinterpret_cast<T*>(&data); }
   const T* operator->() const { return reinterpret_cast<T*>(&data); }
 };

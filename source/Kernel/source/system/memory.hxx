@@ -15,7 +15,7 @@ enum class GlobalHeapType {
   MEM2 = MEM1
 };
 
-void Init(char* mem1b, u32 mem1s);
+void Init();
 inline bool AddRegion(void* start, u32 size, bool mem2) {
   KURIBO_PRINTF("Adding a region is a no-op\n");
   return false;

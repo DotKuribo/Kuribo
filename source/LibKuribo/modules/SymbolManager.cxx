@@ -6,7 +6,7 @@ namespace kuribo {
 SymbolManager* SymbolManager::sInstance;
 
 void SymbolManager::registerProcedure(u32 symbol, u32 value) {
-  mEntries.emplace_back(symbol, value);
+  mEntries[mEntrySize++] = Entry{symbol, value};
 }
 u32 SymbolManager::getProcedure(u32 symbol) {
   const auto find_proc = [symbol](const Entry& entry) {
@@ -14,8 +14,8 @@ u32 SymbolManager::getProcedure(u32 symbol) {
     return entry.hash == symbol;
   };
   const auto found =
-      eastl::find_if(mEntries.begin(), mEntries.end(), find_proc);
-  if (found == mEntries.end()) {
+      eastl::find_if(mEntries, mEntries + mEntrySize, find_proc);
+  if (found == mEntries + mEntrySize) {
     // KURIBO_LOG("Cannot find symbol\n");
     return 0;
   }

@@ -84,8 +84,8 @@ struct Handle : public low_dvd_Handle {
   bool opened() const { return bOpened; }
   bool bOpened = false;
 };
-inline eastl::unique_ptr<u8[]> loadFile(const char* path, int* size, int* rsize,
-                                        kuribo::mem::Heap* heap = nullptr) {
+inline mem::unique_ptr<u8> loadFile(const char* path, int* size, int* rsize,
+                                    kuribo::mem::Heap* heap = nullptr) {
   Handle file(path);
   if (!file.bOpened)
     return nullptr;
@@ -101,11 +101,11 @@ inline eastl::unique_ptr<u8[]> loadFile(const char* path, int* size, int* rsize,
 
   file.read(buf, file.getRoundedSize(), 0);
 
-  return eastl::unique_ptr<u8[]>(buf);
+  return mem::unique_ptr<u8>(buf, heap ? heap : &kuribo::mem::GetDefaultHeap());
 }
 
-inline eastl::unique_ptr<u8[]> loadFile(entry path, int* size, int* rsize,
-                                        kuribo::mem::Heap* heap = nullptr) {
+inline mem::unique_ptr<u8> loadFile(entry path, int* size, int* rsize,
+                                    kuribo::mem::Heap* heap = nullptr) {
   Handle file(path);
   if (!file.bOpened)
     return nullptr;
@@ -121,7 +121,7 @@ inline eastl::unique_ptr<u8[]> loadFile(entry path, int* size, int* rsize,
 
   file.read(buf, file.getRoundedSize(), 0);
 
-  return eastl::unique_ptr<u8[]>(buf);
+  return mem::unique_ptr<u8>(buf, heap ? heap : &kuribo::mem::GetDefaultHeap());
 }
 inline eastl::string loadFileString(const char* path) {
   Handle file(path);
@@ -129,7 +129,9 @@ inline eastl::string loadFileString(const char* path) {
   if (!file.opened())
     return "";
 
-  eastl::unique_ptr<u8[]> tmp{new (nullptr, 32) u8[file.getRoundedSize()]};
+  mem::unique_ptr<u8> tmp{new (&kuribo::mem::GetDefaultHeap(), 32)
+                              u8[file.getRoundedSize()],
+                          &kuribo::mem::GetDefaultHeap()};
   file.read(tmp.get(), file.getRoundedSize(), 0);
 
   return {reinterpret_cast<char*>(tmp.get()), file.getRealSize()};
