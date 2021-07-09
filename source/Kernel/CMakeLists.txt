@@ -8,20 +8,13 @@ add_executable (KuriboKernel
 	
 	"source/io/io.hxx"
 	"source/system/memory.hxx"
-	"source/system/memory/free_list_heap.hxx"
-	"../Common/memory/heap.hxx"
-	"source/system/memory/stack_alloc.hxx"
-	"source/system/memory/xalloc/Allocator.h"
-	"source/system/memory/xalloc/FreeListAllocator.h"
-	"source/system/memory/xalloc/SinglyLinkedList.h"
-	"source/system/memory/xalloc/SinglyLinkedListImpl.h"
-	"source/system/memory/xalloc/Utils.h"
+	
 	"source/system/system.hxx"
 	
 	"source/entry.cxx"
 	"source/platform.cxx"
+	
 	"source/system/memory/memory.cxx"
-	"source/system/memory/xalloc/FreeListAllocator.cxx"
 	"source/system/system.cxx"
 	"source/test.cxx"
 
@@ -44,14 +37,14 @@ if (KURIBO_BUILD_WII)
 		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${KERNEL_COMPILE}")
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${KERNEL_COMPILE}")
 
-		target_link_libraries(KuriboKernel Common GeckoJIT LibKuribo "${CMAKE_SOURCE_DIR}/Targets/libKuriboClang.a")
+		target_link_libraries(KuriboKernel Common GeckoJIT LibKuribo FallbackAllocator "${CMAKE_SOURCE_DIR}/Targets/libKuriboClang.a")
 	else()
 		set(KERNEL_COMPILE "-Wno-multichar")
 
 		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${KERNEL_COMPILE}")
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${KERNEL_COMPILE}")
 
-		target_link_libraries(KuriboKernel Common GeckoJIT LibKuribo)
+		target_link_libraries(KuriboKernel Common GeckoJIT LibKuribo FallbackAllocator)
 	endif()
 
 	add_custom_target(${PROJECT_NAME}.bin ALL DEPENDS ${PROJECT_NAME})
@@ -75,5 +68,6 @@ else()
 		Common
 		GeckoJIT
 		LibKuribo
+		FallbackAllocator
 	)
 endif()
