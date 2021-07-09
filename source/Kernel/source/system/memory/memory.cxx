@@ -16,39 +16,37 @@ void Free(void* ptr, Heap& heap) { heap.free(ptr); }
 void Free(void* ptr) {
   if (ptr == nullptr)
     return;
+
+  KURIBO_PRINTF("Unsafe free\n");
   // TODO: Unsafe if given invalid pointer
   using alloc_header = xalloc::FreeListAllocator::AllocationHeader;
   alloc_header* pHeader = reinterpret_cast<alloc_header*>(ptr) - 1;
   pHeader->heap->Free(ptr);
 }
 
-DeferredInitialization<FreeListHeap> sMem1Heap, sMem2Heap;
+Heap* sMem1Heap = nullptr;
+Heap* sMem2Heap = nullptr;
 
-void Init(char* mem1b, u32 mem1s, char* mem2b, u32 mem2s) {
-  sMem1Heap.initialize(mem1b, mem1s);
-  // sMem2Heap.initialize(mem2b, mem2s);
+// For allocating heaps themselves
+char sSystemBuffer[1024];
+DeferredInitialization<FreeListHeap> sSystemAllocator;
+
+static void InitSystemAllocator() {
+  sSystemAllocator.initialize(sSystemBuffer, sizeof(sSystemBuffer));
 }
 
-static bool AddRegion(void* begin, void* end,
-                      DeferredInitialization<FreeListHeap>& heap) {
-  KURIBO_ASSERT(heap.isInitialized());
-  if (!heap.isInitialized())
-    return false;
-  return heap->getAlloc().AddFreeRegion(begin, end);
-}
+void Init(char* mem1b, u32 mem1s) {
+  InitSystemAllocator();
 
-bool AddRegion(void* start, u32 size, bool mem2) {
-  KURIBO_LOG("Adding region to %s heap.\n", mem2 ? "MEM2" : "MEM1");
-
-  return AddRegion(start, reinterpret_cast<char*>(start) + size,
-                   mem2 ? sMem2Heap : sMem1Heap);
+  sMem1Heap = new (&sSystemAllocator) FreeListHeap(mem1b, mem1s);
+  // sMem2Heap = new (&sSystemAllocator) FreeListHeap(mem2b, mem2s);
 }
 
 Heap& GetHeap(GlobalHeapType type) {
   switch (type) {
   case GlobalHeapType::Default:
   case GlobalHeapType::MEM1:
-    return sMem1Heap;
+    return *sMem1Heap;
     // case GlobalHeapType::MEM2:
     //  return sMem2Heap;
   }
@@ -57,47 +55,3 @@ Heap& GetHeap(GlobalHeapType type) {
 } // namespace mem
 
 } // namespace kuribo
-
-void* _malloc(u32 s) {
-  return kuribo::mem::Alloc(s, kuribo::mem::GetDefaultHeap());
-}
-void* _malloc_ex(u32 s, u32 a) {
-  return kuribo::mem::Alloc(s, kuribo::mem::GetDefaultHeap(), a);
-}
-
-void _free(void* p) {
-  if (p)
-    kuribo::mem::Free(p);
-}
-
-void* operator new(size_t size) {
-  return kuribo::mem::Alloc(size, kuribo::mem::GetDefaultHeap());
-}
-void* operator new[](size_t size) { return operator new(size); }
-
-void operator delete(void* p) {
-  if (p)
-    kuribo::mem::Free(p);
-}
-void operator delete[](void* p) {
-  if (p)
-    kuribo::mem::Free(p);
-}
-
-#if __cplusplus >= 201402L || defined(_WIN32)
-void operator delete(void* ptr, size_t) { operator delete(ptr); }
-void operator delete[](void* ptr, size_t) { operator delete(ptr); }
-#endif
-
-// EASTL
-
-void* operator new[](size_t size, const char* pName, int flags,
-                     unsigned debugFlags, const char* file, int line) {
-  return kuribo::mem::Alloc(size, kuribo::mem::GetDefaultHeap(), 8);
-}
-void* operator new[](size_t size, size_t alignment, size_t alignmentOffset,
-                     const char* pName, int flags, unsigned debugFlags,
-                     const char* file, int line) {
-  KURIBO_ASSERT(alignment == alignmentOffset);
-  return kuribo::mem::Alloc(size, kuribo::mem::GetDefaultHeap(), alignment);
-}

@@ -146,7 +146,7 @@ void comet_app_install(void* image, void* vaddr_load, uint32_t load_size) {
   {
     const Arena sys_arena = GetSystemArena();
     KURIBO_PRINTF("ARENA STARTS AT %p\n", sys_arena.base_address);
-    kuribo::mem::Init(sys_arena.base_address, sys_arena.size, nullptr, 0);
+    kuribo::mem::Init(sys_arena.base_address, sys_arena.size);
   }
 
   kuribo::System::createSystem();

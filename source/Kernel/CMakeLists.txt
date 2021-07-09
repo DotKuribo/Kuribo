@@ -19,7 +19,7 @@ add_executable (KuriboKernel
 	"source/test.cxx"
 
 	"source/vendor/libc.c"
- "source/module.hxx")
+ "source/module.hxx" "source/system/memory/memory_stdlib.cxx" "source/system/memory/memory_cpp.cxx" "source/system/memory/memory_cpp14.cxx" "source/system/memory/memory_eastl.cxx")
 
 target_include_directories(KuriboKernel PRIVATE "source" "source/vendor" "../" "../../" "../../sdk" "../Common" "../Common/vendor" "../LibKuribo")
 
