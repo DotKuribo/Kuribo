@@ -2,6 +2,7 @@
 
 #include <EASTL/string_view.h>
 #include <debug/assert.h>
+#include <functional>
 #include <types.h>
 #include <utility>
 
@@ -32,35 +33,69 @@ struct Node {
   };
 };
 static_assert(sizeof(Node) == 12);
-extern const Node* gNodes;
-extern const char* gStrings;
 
-void InitFilesystem();
+// The filesystem itself is one giant folder
+struct rvl_os_filesystem_root {};
 
-inline bool IsEntryValid(u32 entry_id) {
-  return entry_id < gNodes[0].folder.sibling_next;
-}
+// More like a folder
+struct DiscFileSystem {
+public:
+  DiscFileSystem(rvl_os_filesystem_root);
+  ~DiscFileSystem();
+
+  DiscFileSystem(const Node* nodes, const char* strings)
+      : mNodes(nodes), mStrings(strings) {}
+
+  DiscFileSystem(const DiscFileSystem&) = default;
+
+  inline u32 NumEntries() const { return mNodes[0].folder.sibling_next; }
+  inline bool IsEntryValid(u32 entry_id) const {
+    return entry_id < NumEntries();
+  }
+
+  const Node& getChild(u32 child_index) const {
+    KURIBO_ASSERT(IsEntryValid(child_index) && "Invalid child index");
+    return mNodes[child_index];
+  }
+  const char* getStringById(u32 id) const { return mStrings + id; }
+
+  const Node* getNodes() const { return mNodes; }
+
+private:
+  const Node* mNodes;
+  const char* mStrings;
+
+  // In the windows emulator, DiscFileSystem(rvl_os_filesystem_root) allocates
+  // memory.
+#ifdef _WIN32
+  bool mNodesOwned = false;
+#endif
+};
 
 //! Unlike a STD path, a fs::Path cannot point to a file that does not exist.
 //! Construction searches the disc.
 class Path {
 public:
-  Path(const char* string) : Path(string, 0) {}
-  Path(eastl::string_view string, u32 search_from = 0);
-  Path(const Node* node) : mNode(node) {}
-  Path(s32 resolved) {
-    KURIBO_ASSERT(gNodes != nullptr && "Call InitFilesystem() first");
-    KURIBO_ASSERT(resolved < gNodes[0].folder.sibling_next && "Invalid node");
-    mNode = resolved >= 0 ? &gNodes[resolved] : nullptr;
+  Path(const DiscFileSystem& fs, const Node* node) : mFs(&fs), mNode(node) {}
+  Path(const DiscFileSystem& fs, s32 resolved) : mFs(&fs) {
+    mNode = resolved >= 0 ? &fs.getChild(resolved) : nullptr;
   }
+
+  // Search parent for path
+  Path(const DiscFileSystem& fs, eastl::string_view string,
+       u32 search_from = 0);
+
+  Path(const Path&) = default;
+
+  Path& operator=(const Path&) = default;
+
   Path() = default;
   ~Path() = default;
 
   // No special logic for absolute path
   Path& append(const eastl::string_view path) {
-    KURIBO_ASSERT(gNodes != nullptr && "Call InitFilesystem() first");
-
-    return *this = Path(path, mNode != nullptr ? mNode - gNodes : 0);
+    return *this =
+               Path(*mFs, path, mNode != nullptr ? mNode - mFs->getNodes() : 0);
   }
   Path& operator/=(const eastl::string_view path) { return append(path); }
 
@@ -74,29 +109,26 @@ public:
   }
   void swap(Path& other) { std::swap(mNode, other.mNode); }
 
-  Path getRootPath() const { return gNodes; }
-  Path getParentPath() const { return getParentNode(); }
+  Path getRootPath() const { return {*mFs, mFs->getNodes()}; }
+  Path getParentPath() const { return {*mFs, getParentNode()}; }
 
   const Node* getNode() const { return mNode; }
-  s32 getResolved() const {
-    KURIBO_ASSERT(gNodes != nullptr && "Call InitFilesystem() first");
+  const DiscFileSystem& getFs() const { return *mFs; }
 
-    return mNode != nullptr ? mNode - gNodes : -1;
+  s32 getResolved() const {
+    return mNode != nullptr ? mNode - mFs->getNodes() : -1;
   }
 
   const Node* getParentNode() const {
-    KURIBO_ASSERT(gNodes != nullptr && "Call InitFilesystem() first");
-
     if (mNode == nullptr)
       return nullptr;
     if (mNode->is_folder)
-      return gNodes + mNode->folder.parent;
+      return &mFs->getChild(mNode->folder.parent);
 
     const Node* it = mNode;
-    // Do not need to check lower bound, as the first entry must be a folder
-    // (the root)
-    while (!it->is_folder)
+    while (it > mFs->getNodes() && !it->is_folder)
       --it;
+
     return it;
   }
 
@@ -110,12 +142,13 @@ public:
     return !mNode->is_folder;
   }
 
-  const char* getName() const { return gStrings + mNode->name_offset; }
+  const char* getName() const { return mFs->getStringById(mNode->name_offset); }
 
   bool operator==(const Path& rhs) const { return mNode == rhs.mNode; }
   bool operator!=(const Path& rhs) const { return !operator==(rhs); }
 
 private:
+  const DiscFileSystem* mFs;
   const Node* mNode = nullptr;
 };
 
@@ -125,7 +158,7 @@ public:
   RecursiveDirectoryIterator() = default;
 
   RecursiveDirectoryIterator operator++() {
-    mPath = {mPath.getNode() + 1};
+    mPath = {mPath.getFs(), mPath.getNode() + 1};
     return *this;
   }
   Path operator*() const { return mPath; }
@@ -137,15 +170,18 @@ public:
     return !operator==(rhs);
   }
 
-  RecursiveDirectoryIterator begin() const { return {mPath.getNode() + 1}; }
+  RecursiveDirectoryIterator begin() const {
+    return Path{mPath.getFs(), mPath.getNode() + 1};
+  }
   RecursiveDirectoryIterator end() const {
     if (!mPath.getNode()->is_folder)
       return begin();
-    return Path{gNodes + mPath.getNode()->folder.sibling_next};
+    return Path{mPath.getFs(),
+                static_cast<s32>(mPath.getNode()->folder.sibling_next)};
   }
 
 private:
-  Path mPath = {};
+  Path mPath;
 };
 
 } // namespace kuribo::io::fs

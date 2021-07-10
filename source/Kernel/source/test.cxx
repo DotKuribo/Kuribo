@@ -61,7 +61,10 @@ void LoadModuleFile(const char* file_name, u8* file, u32 size,
 
 void LoadModulesOffDisc(kuribo::mem::Heap& file_heap,
                         kuribo::mem::Heap& module_heap) {
-  auto path = kuribo::io::fs::Path("Kuribo!/Mods/");
+  auto fs =
+      kuribo::io::fs::DiscFileSystem(kuribo::io::fs::rvl_os_filesystem_root{});
+
+  auto path = kuribo::io::fs::Path(fs, "Kuribo!/Mods/");
 
   if (path.getNode() == nullptr) {
     KURIBO_PRINTF("Failed to resolve Mods folder.\n");
@@ -77,8 +80,7 @@ void LoadModulesOffDisc(kuribo::mem::Heap& file_heap,
     KURIBO_PRINTF("FILE: %s\n", file.getName());
 
     int size, rsize;
-    auto kxmodule = kuribo::io::dvd::loadFile(file.getResolved(), &size, &rsize,
-                                              &file_heap);
+    auto kxmodule = kuribo::io::dvd::loadFile(file, &size, &rsize, &file_heap);
 
     if (kxmodule.get() == nullptr) {
       KURIBO_PRINTF("Failed to read off disc..\n");
@@ -109,6 +111,10 @@ void HandleReload() {
 }
 
 void QueueReload() { sReloadPending = true; }
+
+#ifndef __VERSION__
+#define __VERSION__ ""
+#endif
 
 void PrintLoadedModules() {
   KURIBO_PRINTF("&a---Kuribo ("

@@ -24,20 +24,18 @@ static inline u16 swap16(u16 v) { return _BSWAP_16(v); }
 
 namespace kuribo::io::fs {
 
-const Node* gNodes;
-const char* gStrings;
-
-void InitFilesystem() {
+DiscFileSystem::DiscFileSystem(rvl_os_filesystem_root) {
 #ifdef _WIN32
   return;
   FILE* pFile = fopen("FST.bin", "rb");
-  gNodes = (Node*)malloc(0x1cee0);
-  fread((void*)gNodes, 0x1cee0, 1, pFile);
+  mNodes = (Node*)malloc(0x1cee0);
+  mNodesOwned = true;
+  fread((void*)mNodes, 0x1cee0, 1, pFile);
 
-  const u32 next = swap32(gNodes->folder.sibling_next);
+  const u32 next = swap32(mNodes->folder.sibling_next);
 
   for (int i = 0; i < next; ++i) {
-    Node* node = (Node*)gNodes + i;
+    Node* node = (Node*)mNodes + i;
     //    node->is_folder   = swap32(node->is_folder);
     node->packed = swap32(node->packed);
     node->file.offset = swap32(node->file.offset);
@@ -45,10 +43,16 @@ void InitFilesystem() {
   }
   fclose(pFile);
 #else // HW
-  gNodes = *reinterpret_cast<const Node**>(0x80000038);
+  mNodes = *reinterpret_cast<const Node**>(0x80000038);
 #endif
-  gStrings =
-      reinterpret_cast<const char*>(gNodes + gNodes[0].folder.sibling_next);
+  mStrings =
+      reinterpret_cast<const char*>(mNodes + mNodes[0].folder.sibling_next);
+}
+
+DiscFileSystem::~DiscFileSystem() {
+#ifdef _WIN32
+  free(const_cast<Node*>(mNodes));
+#endif
 }
 
 inline bool equalsIgnoreCase(char a, char b) {
@@ -73,10 +77,13 @@ inline bool pathCompare(const eastl::string_view& lhs,
 }
 
 // Path search based on WiiCore
-s32 resolvePath(const Node* nodes, eastl::string_view path, u32 search_from) {
+s32 resolvePath(const DiscFileSystem& fs, eastl::string_view path,
+                u32 search_from) {
+  const Node* nodes = fs.getNodes();
+
   u32 it = search_from;
   while (true) {
-    KURIBO_LOG("Searching from %s\n", gStrings + gNodes[it].name_offset);
+    KURIBO_LOG("Searching from %s\n", fs.getStringById(nodes[it].name_offset));
     // End of string -> return what we have
     if (path.empty())
       return it;
@@ -126,7 +133,7 @@ s32 resolvePath(const Node* nodes, eastl::string_view path, u32 search_from) {
     while (it < nodes[anchor].folder.sibling_next) {
       while (true) {
         if (nodes[it].is_folder || !name_delimited_by_slash) {
-          eastl::string_view name_of_it = gStrings + nodes[it].name_offset;
+          eastl::string_view name_of_it = fs.getStringById(nodes[it].name_offset);
 
           // Skip empty directories
           if (name_of_it == eastl::string_view(".")) {
@@ -160,8 +167,9 @@ s32 resolvePath(const Node* nodes, eastl::string_view path, u32 search_from) {
   }
 }
 
-Path::Path(eastl::string_view path, u32 search_from) {
-  const s32 resolved = resolvePath(gNodes, path, search_from);
-  mNode = resolved >= 0 ? gNodes + resolved : nullptr;
+Path::Path(const DiscFileSystem& fs, eastl::string_view path, u32 search_from)
+    : mFs(&fs) {
+  const s32 resolved = resolvePath(fs, path, search_from);
+  mNode = resolved >= 0 ? &fs.getChild(resolved) : nullptr;
 }
 } // namespace kuribo::io::fs

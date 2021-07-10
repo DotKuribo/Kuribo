@@ -23,16 +23,11 @@ namespace dvd {
 
 using entry = s32;
 
-inline entry queryEntryNum(const char* path) {
-  return fs::Path(path).getResolved();
-}
-
-inline bool open(low_dvd_Handle& handle, entry ent) {
-  if (!fs::IsEntryValid(ent))
+inline bool open(low_dvd_Handle& handle, const fs::Path& path) {
+  if (!path.getNode())
     return false;
 
   {
-    const fs::Path path(ent);
     if (path.isFolder())
       return false;
 
@@ -58,16 +53,14 @@ inline bool close(low_dvd_Handle& handle) {
 }
 
 struct Handle : public low_dvd_Handle {
-  inline Handle(const char* path) {
-    const auto ent = queryEntryNum(path);
-    KURIBO_ASSERT(ent >= 0 && "Cannot find file on disc");
-    if (ent < 0)
+  inline Handle(const fs::Path& path) {
+    KURIBO_ASSERT(path.getNode() && "Cannot find file on disc");
+    if (!path.getNode())
       return;
 
-    bOpened = open(*this, ent);
+    bOpened = open(*this, path);
     KURIBO_ASSERT(bOpened && "Cannot open file");
   }
-  inline Handle(entry e) { bOpened = open(*this, e); }
   inline ~Handle() {
     if (bOpened)
       close(*this);
@@ -84,7 +77,7 @@ struct Handle : public low_dvd_Handle {
   bool opened() const { return bOpened; }
   bool bOpened = false;
 };
-inline mem::unique_ptr<u8> loadFile(const char* path, int* size, int* rsize,
+inline mem::unique_ptr<u8> loadFile(const fs::Path& path, int* size, int* rsize,
                                     kuribo::mem::Heap* heap = nullptr) {
   Handle file(path);
   if (!file.bOpened)
@@ -104,26 +97,7 @@ inline mem::unique_ptr<u8> loadFile(const char* path, int* size, int* rsize,
   return mem::unique_ptr<u8>(buf, heap ? heap : &kuribo::mem::GetDefaultHeap());
 }
 
-inline mem::unique_ptr<u8> loadFile(entry path, int* size, int* rsize,
-                                    kuribo::mem::Heap* heap = nullptr) {
-  Handle file(path);
-  if (!file.bOpened)
-    return nullptr;
-
-  u8* buf = new (heap ? heap : &kuribo::mem::GetDefaultHeap(), 32)
-      u8[file.getRoundedSize()];
-  KURIBO_ASSERT(buf && "Cannot allocate buffer.");
-
-  if (rsize)
-    *rsize = file.getRealSize();
-  if (size)
-    *size = file.getRoundedSize();
-
-  file.read(buf, file.getRoundedSize(), 0);
-
-  return mem::unique_ptr<u8>(buf, heap ? heap : &kuribo::mem::GetDefaultHeap());
-}
-inline eastl::string loadFileString(const char* path) {
+inline eastl::string loadFileString(const fs::Path& path) {
   Handle file(path);
   KURIBO_ASSERT(file.opened());
   if (!file.opened())
