@@ -165,15 +165,11 @@ void comet_app_install(void* image, void* vaddr_load, uint32_t load_size) {
     sModulesHeap.initialize(sys_arena.base_address, sys_arena.size);
   }
 
-  kuribo::System::createSystem();
-
   {
     kuribo::SymbolManager::initializeStaticInstance(sModulesHeap);
     ExposeSdk();
     ExposeModules();
   }
-
-  kuribo::io::fs::InitFilesystem();
 
   spLoadedModules.initialize();
   LoadModulesOffDisc(sModulesHeap, sModulesHeap);
