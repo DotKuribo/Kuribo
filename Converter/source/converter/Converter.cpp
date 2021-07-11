@@ -107,13 +107,16 @@ bool Converter::process(std::vector<u8>& buf) {
 
       if (auto symbol_explicit = getSymbol(*symbol);
           symbol_explicit.has_value()) {
-        // This will be applied statically
+        // This will be applied statically, if possible
         return RelocationExtractor::MapEntry{
-            .section = 0xFE, .offset = *symbol_explicit, .name = *symbol};
+            .section = Section_RawAddress_StaticOrDynamic,
+            .offset = *symbol_explicit,
+            .name = *symbol};
       }
 
-      return RelocationExtractor::MapEntry{
-          .section = 0xFF, .offset = addExtern(*symbol), .name = *symbol};
+      return RelocationExtractor::MapEntry{.section = Section_ExternSymbol,
+                                           .offset = addExtern(*symbol),
+                                           .name = *symbol};
     }
 
     // We only have one section (a CODE section)
@@ -136,7 +139,7 @@ bool Converter::process(std::vector<u8>& buf) {
 
   auto& relocs = extractor.getRelocations();
   for (auto& reloc : relocs) {
-    if (reloc.source_section != 0xFE)
+    if (reloc.source_section != Section_RawAddress_StaticOrDynamic)
       continue;
     // Apply the relocation now
     assert(reloc.affected_section == 0);
@@ -147,9 +150,9 @@ bool Converter::process(std::vector<u8>& buf) {
     case R_PPC_NONE:
       break;
     default:
-      // 0xFD must still be resolved
+      // Section_RawAddress must still be resolved
       // The others can be done on link time though
-      reloc.source_section = 0xFD;
+      reloc.source_section = Section_RawAddress_Dynamic;
       break;
     case R_PPC_ADDR32: {
       *reinterpret_cast<u32*>(affected) = swap32(source);
@@ -186,8 +189,9 @@ bool Converter::process(std::vector<u8>& buf) {
     }
   }
 
-  std::remove_if(relocs.begin(), relocs.end(),
-                 [](auto& reloc) { return reloc.source_section == 0xFE; });
+  std::remove_if(relocs.begin(), relocs.end(), [](auto& reloc) {
+    return reloc.source_section == Section_RawAddress_StaticOrDynamic;
+  });
 
   builder.writeRelocationsSection(header, extractor.getRelocations());
   builder.writeImportsSection(header, mImports);
