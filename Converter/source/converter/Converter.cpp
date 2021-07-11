@@ -55,6 +55,67 @@ void Converter::printElfInfo(const ELFIO::elfio& elf) const {
            static_cast<unsigned>(sec->get_memory_size()));
 }
 
+// Apply R_PPC_ADDR* immediately.
+// Defer others to Section_RawAddress_Dynamic
+void ApplyExternRelocs(kx::RelocationExtractor& extractor, u32 header_size,
+                       std::vector<u8>& buf) {
+  auto& relocs = extractor.getRelocations();
+  for (auto& reloc : relocs) {
+    if (reloc.source_section != Section_RawAddress_StaticOrDynamic)
+      continue;
+    // Apply the relocation now
+    assert(reloc.affected_section == 0);
+    const auto section_start = header_size;
+    u8* affected = buf.data() + section_start + reloc.affected_offset;
+    u32 source = reloc.source_offset + reloc.source_addend;
+    switch (reloc.r_type) {
+    case R_PPC_NONE:
+      break;
+    default:
+      // Section_RawAddress must still be resolved
+      // The others can be done on link time though
+      reloc.source_section = Section_RawAddress_Dynamic;
+      break;
+    case R_PPC_ADDR32: {
+      *reinterpret_cast<u32*>(affected) = swap32(source);
+      break;
+    }
+    case R_PPC_ADDR24: {
+      u32 old = swap32(*reinterpret_cast<u32*>(affected));
+      old = (old & ~0x03fffffc) | (source & 0x03fffffc);
+      *reinterpret_cast<u32*>(affected) = swap32(old);
+      break;
+    }
+    case R_PPC_ADDR16: // Identical..
+    case R_PPC_ADDR16_LO: {
+      *reinterpret_cast<u16*>(affected) = swap16(source);
+      break;
+    }
+    case R_PPC_ADDR16_HI: {
+      *reinterpret_cast<u16*>(affected) = swap16(source >> 16);
+      break;
+    }
+    case R_PPC_ADDR16_HA: {
+      *reinterpret_cast<u16*>(affected) =
+          swap16((source >> 16) + !!(source & 0x8000));
+      break;
+    }
+    case R_PPC_ADDR14:
+    case R_PPC_ADDR14_BRTAKEN:
+    case R_PPC_ADDR14_BRNKTAKEN: {
+      u32 old = swap32(*reinterpret_cast<u32*>(affected));
+      old = (old & ~0x0000'fffc) | (source & 0x0000'fffc);
+      *reinterpret_cast<u32*>(affected) = swap32(old);
+      break;
+    }
+    }
+  }
+
+  std::remove_if(relocs.begin(), relocs.end(), [](auto& reloc) {
+    return reloc.source_section == Section_RawAddress_StaticOrDynamic;
+  });
+}
+
 bool Converter::process(std::vector<u8>& buf) {
   bin::Header header;
 
@@ -137,61 +198,8 @@ bool Converter::process(std::vector<u8>& buf) {
   if (!extractor.processRelocations(mElf))
     return false;
 
-  auto& relocs = extractor.getRelocations();
-  for (auto& reloc : relocs) {
-    if (reloc.source_section != Section_RawAddress_StaticOrDynamic)
-      continue;
-    // Apply the relocation now
-    assert(reloc.affected_section == 0);
-    const auto section_start = header_size;
-    u8* affected = buf.data() + section_start + reloc.affected_offset;
-    u32 source = reloc.source_offset + reloc.source_addend;
-    switch (reloc.r_type) {
-    case R_PPC_NONE:
-      break;
-    default:
-      // Section_RawAddress must still be resolved
-      // The others can be done on link time though
-      reloc.source_section = Section_RawAddress_Dynamic;
-      break;
-    case R_PPC_ADDR32: {
-      *reinterpret_cast<u32*>(affected) = swap32(source);
-      break;
-    }
-    case R_PPC_ADDR24: {
-      u32 old = swap32(*reinterpret_cast<u32*>(affected));
-      old = (old & ~0x03fffffc) | (source & 0x03fffffc);
-      *reinterpret_cast<u32*>(affected) = swap32(old);
-      break;
-    }
-    case R_PPC_ADDR16: // Identical..
-    case R_PPC_ADDR16_LO: {
-      *reinterpret_cast<u16*>(affected) = swap16(source);
-      break;
-    }
-    case R_PPC_ADDR16_HI: {
-      *reinterpret_cast<u16*>(affected) = swap16(source >> 16);
-      break;
-    }
-    case R_PPC_ADDR16_HA: {
-      *reinterpret_cast<u16*>(affected) =
-          swap16((source >> 16) + !!(source & 0x8000));
-      break;
-    }
-    case R_PPC_ADDR14:
-    case R_PPC_ADDR14_BRTAKEN:
-    case R_PPC_ADDR14_BRNKTAKEN: {
-      u32 old = swap32(*reinterpret_cast<u32*>(affected));
-      old = (old & ~0x0000'fffc) | (source & 0x0000'fffc);
-      *reinterpret_cast<u32*>(affected) = swap32(old);
-      break;
-    }
-    }
-  }
-
-  std::remove_if(relocs.begin(), relocs.end(), [](auto& reloc) {
-    return reloc.source_section == Section_RawAddress_StaticOrDynamic;
-  });
+  // Certain absolute address offsets can be applied immediately
+  ApplyExternRelocs(extractor, header_size, buf);
 
   builder.writeRelocationsSection(header, extractor.getRelocations());
   builder.writeImportsSection(header, mImports);
@@ -237,10 +245,38 @@ static bool IsSectionTypeCodeData(u32 type) {
   if (type == SHT_FINI_ARRAY)
     return true;
 
+  return false;
+}
+
+static bool IsSectionTypeBss(u32 type) { return type == SHT_NOBITS; }
+
+static bool IsSectionNameCtors(std::string_view name) {
+  // CodeWarrior
+  if (name == ".ctors")
+    return true;
+
+  // Clang
+  if (name == ".init_array")
+    return true;
 
   return false;
 }
-static bool IsSectionTypeBss(u32 type) { return type == SHT_NOBITS; }
+
+static bool AppendSectionBytes(std::vector<u8>& buf, const ELFIO::section& section) {
+  if (IsSectionTypeCodeData(section.get_type())) {
+    buf.insert(buf.end(), section.get_data(),
+               section.get_data() + section.get_size());
+    return true;
+  }
+
+  if (IsSectionTypeBss(section.get_type())) {
+    buf.resize(buf.size() + section.get_size());
+    return true;
+  }
+
+  printf("Invalid section..\n");
+  return false;
+}
 
 bool Converter::collectSections(std::vector<std::size_t>& section_offsets,
                                 u32& max_align, std::vector<u8>& buf) {
@@ -262,17 +298,11 @@ bool Converter::collectSections(std::vector<std::size_t>& section_offsets,
     const auto section_offset = buf.size();
     section_offsets.push_back(section_offset);
 
-    if (IsSectionTypeCodeData(section.get_type())) {
-      buf.insert(buf.end(), section.get_data(),
-                 section.get_data() + section.get_size());
-    } else if (IsSectionTypeBss(section.get_type())) {
-      buf.resize(buf.size() + section.get_size());
-    } else {
-      printf("Invalid section..\n");
+    if (!AppendSectionBytes(buf, section)) {
       return false;
     }
 
-    if (section.get_name() == ".ctors" || section.get_name() == ".init_array") {
+    if (IsSectionNameCtors(section.get_name())) {
       constexpr auto header_size = roundUp(sizeof(bin::Header), 32);
       mExplicitSymbols["__ctor_loc"] = section_offset - header_size;
       mExplicitSymbols["__ctor_end"] = buf.size() - header_size;

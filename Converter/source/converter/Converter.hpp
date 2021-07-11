@@ -12,7 +12,11 @@ namespace kx {
 
 class Converter {
 public:
-  Converter() = default;
+  Converter() {
+    // Default case
+    mExplicitSymbols["__ctor_loc"] = 0;
+    mExplicitSymbols["__ctor_end"] = 0;
+  }
   ~Converter() = default;
 
   void readSymbols(const std::string& path);
