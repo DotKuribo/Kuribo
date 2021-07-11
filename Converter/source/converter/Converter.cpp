@@ -111,9 +111,10 @@ void ApplyExternRelocs(kx::RelocationExtractor& extractor, u32 header_size,
     }
   }
 
-  std::remove_if(relocs.begin(), relocs.end(), [](auto& reloc) {
+  auto remove = std::remove_if(relocs.begin(), relocs.end(), [](auto& reloc) {
     return reloc.source_section == Section_RawAddress_StaticOrDynamic;
   });
+  relocs.erase(remove, relocs.end());
 }
 
 bool Converter::process(std::vector<u8>& buf) {
