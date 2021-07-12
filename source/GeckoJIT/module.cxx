@@ -4,10 +4,9 @@
 
 #include "engine/compiler.hpp"
 
-KURIBO_MODULE_BEGIN("GeckoJIT", "Kuribo", "1.0") {
-  KURIBO_EXPORT_AS(kuribo::kxGeckoJitCompileCodes, "kxGeckoJitCompileCodes");
-}
-KURIBO_MODULE_END()
+pp::DefineModule("GeckoJIT", "Kuribo", "1.0");
+
+pp::ExportAs(kuribo::kxGeckoJitCompileCodes, "kxGeckoJitCompileCodes");
 
 
 // We can rely on static ctors here
