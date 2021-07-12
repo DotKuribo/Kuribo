@@ -215,6 +215,13 @@ public:
   void enable() { EnablePatch(mPatch); }
   void disable() { DisablePatch(mPatch); }
 
+  void set_enabled(bool s) {
+    if (s)
+      enable();
+    else
+      disable();
+  }
+
   u32 overwritten_value() const { return mPatch.mSave; }
   u32 new_value() const { return mPatch.mVal; }
 
@@ -233,6 +240,16 @@ public:
   togglable_ppc_bl(u32 addr, void* target, bool by_default = true)
       : auto_patch(addr, PPCBranchInstr((u32)target - addr, true), by_default) {
   }
+};
+
+template <typename T, bool enabled> struct scoped_guard {
+  scoped_guard(T& toggle) : mToggle(toggle), mSave(toggle.is_enabled()) {
+    mToggle.set_enabled(enabled);
+  }
+  ~scoped_guard() { mToggle.set_enabled(mSave); }
+
+  T& mToggle;
+  bool mSave;
 };
 
 #define PatchIdentifier MACRO_CONCAT(_patch, __COUNTER__)
