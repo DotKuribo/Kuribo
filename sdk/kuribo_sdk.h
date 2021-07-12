@@ -1,5 +1,5 @@
 /*========================================
-||    Kuribo SDK 2.0
+||    Kuribo SDK 3.0
 ==========================================
 
 Supported targets:
@@ -32,6 +32,7 @@ Provided Types:
 Changelog:
  - 1.0: Initial revision
  - 2.0: Added linking APIs
+ - 3.0: Added C++ API
 
 Example Usage:
   KURIBO_MODULE_BEGIN("Demo Module", "riidefi", "Beta")
@@ -234,12 +235,11 @@ public:
   }
 };
 
-#define PatchB(a, b)                                                           \
-  togglable_ppc_b MACRO_CONCAT(_patch, __COUNTER__)((u32)a, (void*)b)
-#define PatchBL(a, b)                                                          \
-  togglable_ppc_bl MACRO_CONCAT(_patch, __COUNTER__)((u32)a, (void*)b)
-#define Patch32(a, b)                                                          \
-  auto_patch MACRO_CONCAT(_patch, __COUNTER__)((u32)a, (u32)b)
+#define PatchIdentifier MACRO_CONCAT(_patch, __COUNTER__)
+
+#define PatchB(a, b) togglable_ppc_b PatchIdentifier((u32)a, (void*)b)
+#define PatchBL(a, b) togglable_ppc_bl PatchIdentifier((u32)a, (void*)b)
+#define Patch32(a, b) auto_patch PatchIdentifier((u32)a, (u32)b)
 
 struct dummy {};
 
@@ -247,6 +247,41 @@ struct dummy {};
   dummy module_is_defined;                                                     \
   KURIBO_MODULE_BEGIN(name, author, version)                                   \
   KURIBO_MODULE_END()
+
+struct export_as {
+  export_as(void* func, const char* name) {
+    if (__kuribo_ctx.register_procedure) {
+      __kuribo_ctx.register_procedure(name, (u32)func);
+    }
+  }
+  ~export_as() {
+    // There is no easy way to revoke an export, currently
+    // We could re-register as nullptr
+  }
+};
+
+#define ExportAs(a, b) export_as PatchIdentifier((void*)a, b)
+#define Export(a) export_as PatchIdentifier((void*)a, ##a)
+
+typedef void (*VoidFunc)();
+
+struct on_load {
+  on_load(VoidFunc fn) { fn(); }
+};
+
+struct on_unload {
+  on_unload(VoidFunc fn) : _fn(fn) {}
+  ~on_unload() { _fn(); }
+
+  VoidFunc _fn;
+};
+
+#define OnLoad(fn) on_load PatchIdentifier(fn)
+#define OnUnload(fn) on_unload PatchIdentifier(fn)
+
+//! You probably don't want to use this: the linker will automatically call this
+//! for you when you call an external function
+inline void* Import(const char* name) { return KURIBO_GET_PROCEDURE(name); }
 
 } // namespace pp
 
