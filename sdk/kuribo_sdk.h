@@ -73,10 +73,10 @@ Example Usage:
     // =======================
     // KURIBO LINKING APIs
     // =======================
-      // Export a function symbol as a specified name. 
+      // Export a function symbol as a specified name.
       KURIBO_EXPORT_AS(MySqrt, "sqrt");
 
-      // Export a function symbol. 
+      // Export a function symbol.
       KURIBO_EXPORT(MySqrt);
 
       // Get the address of a procedure.
@@ -146,4 +146,108 @@ Example Usage:
 #define kWrite32(address, value) KURIBO_PATCH_32(address, value)
 #define kVtable(vtable_address, function_index, function)                      \
   KURIBO_PATCH_32(KURIBO_VTABLE(vtable_address, function_index), +[] function)
+#endif
+
+#if defined(__cplusplus)
+
+namespace pp {
+
+struct Patch {
+  u32 mAddr; // Address in memory
+  u32 mVal;  // New value
+  u32 mSave; // Value before apply
+
+  bool mApplied; // If the patch has been applied
+};
+
+// Grabs data lazily
+inline Patch CreatePatch(u32 addr, u32 val) {
+  Patch data;
+  data.mAddr = addr;
+  data.mVal = val;
+  data.mSave = 0xCCCCCCCC; // Acquired right before apply
+  data.mApplied = false;
+  return data;
+}
+
+inline void EnablePatch(Patch& patch) {
+  if (patch.mApplied)
+    return;
+
+  u32* addr = (u32*)patch.mAddr;
+
+  patch.mSave = *addr;
+  *addr = patch.mVal;
+  icbi(addr);
+
+  patch.mApplied = true;
+}
+
+inline void DisablePatch(Patch& patch) {
+  if (!patch.mApplied)
+    return;
+
+  u32* addr = (u32*)patch.mAddr;
+
+  *addr = patch.mSave;
+  icbi(patch.mAddr);
+  patch.mSave = 0xCCCCCCCC;
+
+  patch.mApplied = false;
+}
+
+inline u32 PPCBranchInstr(u32 delta, bool lk) {
+  return 0x48000000 | (delta & 0x3fffffc) | (lk ? 1 : 0);
+}
+
+class auto_patch {
+public:
+  auto_patch(u32 addr, u32 val, bool by_default = true)
+      : mPatch(CreatePatch(addr, val)) {
+    if (by_default)
+      enable();
+  }
+  ~auto_patch() { disable(); }
+
+  bool is_enabled() const { return mPatch.mApplied; }
+
+  void enable() { EnablePatch(mPatch); }
+  void disable() { DisablePatch(mPatch); }
+
+  u32 overwritten_value() const { return mPatch.mSave; }
+  u32 new_value() const { return mPatch.mVal; }
+
+private:
+  Patch mPatch;
+};
+
+class togglable_ppc_b : public auto_patch {
+public:
+  togglable_ppc_b(u32 addr, void* target, bool by_default = true)
+      : auto_patch(addr, PPCBranchInstr((u32)target - addr, false),
+                   by_default) {}
+};
+class togglable_ppc_bl : public auto_patch {
+public:
+  togglable_ppc_bl(u32 addr, void* target, bool by_default = true)
+      : auto_patch(addr, PPCBranchInstr((u32)target - addr, true), by_default) {
+  }
+};
+
+#define PatchB(a, b)                                                           \
+  togglable_ppc_b MACRO_CONCAT(_patch, __COUNTER__)((u32)a, (void*)b)
+#define PatchBL(a, b)                                                          \
+  togglable_ppc_bl MACRO_CONCAT(_patch, __COUNTER__)((u32)a, (void*)b)
+#define Patch32(a, b)                                                          \
+  auto_patch MACRO_CONCAT(_patch, __COUNTER__)((u32)a, (u32)b)
+
+struct dummy {};
+
+#define DefineModule(name, author, version)                                    \
+  dummy module_is_defined;                                                     \
+  KURIBO_MODULE_BEGIN(name, author, version)                                   \
+  KURIBO_MODULE_END()
+
+} // namespace pp
+
 #endif
