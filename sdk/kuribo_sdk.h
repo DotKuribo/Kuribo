@@ -1,5 +1,5 @@
 /*========================================
-||    Kuribo SDK 3.0
+||    Kuribo SDK 3.1
 ==========================================
 
 Supported targets:
@@ -33,6 +33,7 @@ Changelog:
  - 1.0: Initial revision
  - 2.0: Added linking APIs
  - 3.0: Added C++ API
+ - 3.1: Added pp::Instructions
 
 Example Usage:
   KURIBO_MODULE_BEGIN("Demo Module", "riidefi", "Beta")
@@ -254,9 +255,9 @@ template <typename T, bool enabled> struct scoped_guard {
 
 #define PatchIdentifier MACRO_CONCAT(_patch, __COUNTER__)
 
-#define PatchB(a, b) togglable_ppc_b PatchIdentifier((u32)a, (void*)b)
-#define PatchBL(a, b) togglable_ppc_bl PatchIdentifier((u32)a, (void*)b)
-#define Patch32(a, b) auto_patch PatchIdentifier((u32)a, (u32)b)
+#define PatchB(a, b) togglable_ppc_b static PatchIdentifier((u32)a, (void*)b)
+#define PatchBL(a, b) togglable_ppc_bl static PatchIdentifier((u32)a, (void*)b)
+#define Patch32(a, b) auto_patch static PatchIdentifier((u32)a, (u32)b)
 
 struct dummy {};
 
@@ -277,8 +278,8 @@ struct export_as {
   }
 };
 
-#define ExportAs(a, b) export_as PatchIdentifier((void*)a, b)
-#define Export(a) export_as PatchIdentifier((void*)a, ##a)
+#define ExportAs(a, b) export_as static PatchIdentifier((void*)a, b)
+#define Export(a) export_as static PatchIdentifier((void*)a, ##a)
 
 typedef void (*VoidFunc)();
 
@@ -293,12 +294,14 @@ struct on_unload {
   VoidFunc _fn;
 };
 
-#define OnLoad(fn) on_load PatchIdentifier(fn)
-#define OnUnload(fn) on_unload PatchIdentifier(fn)
+#define OnLoad(fn) on_load static PatchIdentifier(fn)
+#define OnUnload(fn) on_unload static PatchIdentifier(fn)
 
 //! You probably don't want to use this: the linker will automatically call this
 //! for you when you call an external function
 inline void* Import(const char* name) { return KURIBO_GET_PROCEDURE(name); }
+
+enum Instructions { SkipInstruction = 0x60000000, Return = 0x4E800020 };
 
 } // namespace pp
 

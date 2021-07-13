@@ -5,7 +5,7 @@ pp::DefineModule("Simple", "examples", "1.0");
 void MyFunction() {}
 
 // Disable THP
-pp::Patch32(0x80552C28, 0x60000000);
+pp::Patch32(0x80552C28, pp::SkipInstruction);
 
 // Insert a `b MyFunction` at 0x800ECAF8
 pp::PatchB(0x800ECAF8, MyFunction);
