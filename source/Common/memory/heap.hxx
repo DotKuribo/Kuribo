@@ -13,12 +13,12 @@ struct Heap {
 
 } // namespace kuribo::mem
 
-inline void* operator new(u32 size, kuribo::mem::Heap& heap,
+inline void* operator new(size_t size, kuribo::mem::Heap& heap,
                           u32 align = 8) noexcept {
   return heap.alloc(size, align);
 }
 
-inline void* operator new[](u32 size, kuribo::mem::Heap& heap,
+inline void* operator new[](size_t size, kuribo::mem::Heap& heap,
                             u32 align = 8) noexcept {
   return heap.alloc(size, align);
 }

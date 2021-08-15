@@ -31,7 +31,7 @@ void Free(void* ptr);
 
 } // namespace kuribo
 
-inline void* operator new(u32 size, kuribo::mem::Heap* heap,
+inline void* operator new(size_t size, kuribo::mem::Heap* heap,
                           u32 align = 8) noexcept {
   return kuribo::mem::Alloc(
       size,
@@ -39,11 +39,11 @@ inline void* operator new(u32 size, kuribo::mem::Heap* heap,
       align);
 }
 
-inline void* operator new[](u32 size, kuribo::mem::Heap* heap,
+inline void* operator new[](size_t size, kuribo::mem::Heap* heap,
                             u32 align = 8) noexcept {
   return operator new(size, heap, align);
 }
-void* operator new(u32 size);
+void* operator new(size_t size);
 #include <EASTL/unique_ptr.h>
 
 namespace kuribo {
