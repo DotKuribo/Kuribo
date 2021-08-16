@@ -33,27 +33,27 @@ inline u32 get_tick() {
 #define microsecs_to_ticks(usec) (((usec) * (TB_TIMER_CLOCK / 125)) / 8)
 #define nanosecs_to_ticks(nsec) (((nsec) * (TB_TIMER_CLOCK / 125)) / 8000)
 
-#if KURIBO_PLATFORM == KURIBO_PL_TYPE_WII ||                                   \
-    KURIBO_PLATFORM == KURIBO_PL_TYPE_GC
+// #if KURIBO_PLATFORM == KURIBO_PL_TYPE_WII ||                                   \
+//     KURIBO_PLATFORM == KURIBO_PL_TYPE_GC
 #include "api/HostInterop.h"
 #define __OSReport(...)                                                        \
   do {                                                                         \
     ((void (*)(const char*, ...))FFI_NAME(os_report))(__VA_ARGS__);            \
   } while (0)
 #define KURIBO_PRINTF __OSReport
-#else
-#include <stdio.h>
-#define KURIBO_PRINTF printf
-#endif
+// #else
+// #include <stdio.h>
+// #define KURIBO_PRINTF printf
+// #endif
 
 #ifdef KURIBO_ENABLE_LOG
-#if KURIBO_PLATFORM == KURIBO_PL_TYPE_WII ||                                   \
-    KURIBO_PLATFORM == KURIBO_PL_TYPE_GC
+// #if KURIBO_PLATFORM == KURIBO_PL_TYPE_WII ||                                   \
+//     KURIBO_PLATFORM == KURIBO_PL_TYPE_GC
 #define KURIBO_LOG_FUNCTION KURIBO_PRINTF
-#else
-#include <stdio.h>
-#define KURIBO_LOG_FUNCTION KURIBO_PRINTF
-#endif
+// #else
+// #include <stdio.h>
+// #define KURIBO_LOG_FUNCTION KURIBO_PRINTF
+// #endif
 
 #define STRINGIZE(x) STRINGIZE_(x)
 #define STRINGIZE_(x) #x

@@ -1,5 +1,6 @@
 
 #include <stdint.h>
+#include <stdlib.h>
 
 extern void putc(char);
 void _putchar(char c)

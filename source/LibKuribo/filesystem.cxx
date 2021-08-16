@@ -79,6 +79,10 @@ inline bool pathCompare(const eastl::string_view& lhs,
 // Path search based on WiiCore
 s32 resolvePath(const DiscFileSystem& fs, eastl::string_view path,
                 u32 search_from) {
+#ifdef _WIN32
+  return -1;
+#endif
+
   const Node* nodes = fs.getNodes();
 
   u32 it = search_from;
@@ -133,7 +137,8 @@ s32 resolvePath(const DiscFileSystem& fs, eastl::string_view path,
     while (it < nodes[anchor].folder.sibling_next) {
       while (true) {
         if (nodes[it].is_folder || !name_delimited_by_slash) {
-          eastl::string_view name_of_it = fs.getStringById(nodes[it].name_offset);
+          eastl::string_view name_of_it =
+              fs.getStringById(nodes[it].name_offset);
 
           // Skip empty directories
           if (name_of_it == eastl::string_view(".")) {

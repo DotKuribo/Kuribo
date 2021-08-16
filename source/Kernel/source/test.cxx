@@ -130,33 +130,21 @@ void SetEventHandlerAddress(u32 address) {
   kuribo::directBranch((void*)address, (void*)(u32)&HandleReload);
 }
 
-Arena GetSystemArena() {
-#ifdef _WIN32
-  constexpr int size = float(923'448) * .7f;
-  static char GLOBAL_HEAP[size];
 
-  return {.base_address = &GLOBAL_HEAP[0], .size = sizeof(GLOBAL_HEAP)};
-#else
-  return HostGetSystemArena();
-#endif
+
+static void ExposeSdk(kuribo::SymbolManager& sym) {
+  sym.registerProcedure("OSReport", FFI_NAME(os_report));
 }
 
-static void ExposeSdk() {
-  kuribo::kxRegisterProcedure("OSReport", FFI_NAME(os_report));
+static void ExposeModules(kuribo::SymbolManager& sym) {
+  sym.registerProcedure("kxSystemReloadAllModules", (u32)&QueueReload);
+  sym.registerProcedure("kxSystemSetEventCaller", (u32)&SetEventHandlerAddress);
+  sym.registerProcedure("kxSystemPrintLoadedModules", (u32)&PrintLoadedModules);
+  sym.registerProcedure("_ZN9ScopedLog10sLogIndentE",
+                        (u32)&ScopedLog::sLogIndent);
 }
 
-static void ExposeModules() {
-  kuribo::kxRegisterProcedure("kxSystemReloadAllModules", (u32)&QueueReload);
-  kuribo::kxRegisterProcedure("kxSystemSetEventCaller",
-                              (u32)&SetEventHandlerAddress);
-  kuribo::kxRegisterProcedure("kxSystemPrintLoadedModules",
-                              (u32)&PrintLoadedModules);
-
-  kuribo::kxRegisterProcedure("_ZN9ScopedLog10sLogIndentE",
-                              (u32)&ScopedLog::sLogIndent);
-}
-
-kuribo::DeferredInitialization<kuribo::mem::FreeListHeap> sModulesHeap;
+kuribo::mem::Heap* sModulesHeap;
 
 void comet_app_install(void* image, void* vaddr_load, uint32_t load_size) {
   KURIBO_SCOPED_LOG("Installing...");
@@ -165,18 +153,16 @@ void comet_app_install(void* image, void* vaddr_load, uint32_t load_size) {
     // Initialize fallback heap, 1KB in size
     kuribo::mem::Init();
 
-    const Arena sys_arena = GetSystemArena();
-    KURIBO_PRINTF("ARENA STARTS AT %p\n", sys_arena.base_address);
-
-    sModulesHeap.initialize(sys_arena.base_address, sys_arena.size);
+    sModulesHeap = HostGetModuleAllocator();
+    KURIBO_ASSERT(sModulesHeap);
   }
 
   {
-    kuribo::SymbolManager::initializeStaticInstance(sModulesHeap);
-    ExposeSdk();
-    ExposeModules();
+    auto& sym = kuribo::SymbolManager::initializeStaticInstance(*sModulesHeap);
+    ExposeSdk(sym);
+    ExposeModules(sym);
   }
 
   spLoadedModules.initialize();
-  LoadModulesOffDisc(sModulesHeap, sModulesHeap);
+  LoadModulesOffDisc(*sModulesHeap, *sModulesHeap);
 }

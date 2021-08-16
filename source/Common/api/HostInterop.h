@@ -37,4 +37,8 @@ typedef struct Arena {
   uint32_t size;
 } Arena;
 
-EXTERN_C Arena HostGetSystemArena();
+namespace kuribo::mem {
+struct Heap;
+};
+
+EXTERN_C kuribo::mem::Heap* HostGetModuleAllocator();
