@@ -26,7 +26,7 @@ uint64_t mach_absolute_time()
 }
 #if 1
 #ifndef _WIN32
-void* memcpy(void* dest, const void* src, unsigned int len)
+void* memcpy(void* dest, const void* src, size_t len)
 {
 	if (len % 4 == 0) {
 		unsigned* udest = (unsigned*)dest;
@@ -42,7 +42,7 @@ void* memcpy(void* dest, const void* src, unsigned int len)
 		*d++ = *s++;
 	return dest;
 }
-void* memset(void* dest, int val, unsigned int len)
+void* memset(void* dest, int val, size_t len)
 {
 	if (len % 8 == 0 && ((unsigned)dest) % 8 == 0) {
 		unsigned dlen = len / 8;
@@ -88,7 +88,7 @@ void* memset(void* dest, int val, unsigned int len)
 }
 
 void*
-memmove(void* dest, const void* src, unsigned int len)
+memmove(void* dest, const void* src, size_t len)
 {
 	char* d = (char*)dest;
 	const char* s = (const char*)src;
@@ -105,7 +105,7 @@ memmove(void* dest, const void* src, unsigned int len)
 	return dest;
 }
 
-unsigned int strlen(const char* str)
+size_t strlen(const char* str)
 {
 	const char* s;
 
@@ -113,7 +113,7 @@ unsigned int strlen(const char* str)
 	return(s - str);
 }
 
-int memcmp(const void* str1, const void* str2, unsigned int count)
+int memcmp(const void* str1, const void* str2, size_t count)
 {
 	const unsigned char* s1 = (const unsigned char*)str1;
 	const unsigned char* s2 = (const unsigned char*)str2;
@@ -183,7 +183,7 @@ float powf(float a, float b)
 
 float frexpf(float x, int* e)
 {
-	union { float f; unsigned int i; } y = { x };
+	union { float f; size_t i; } y = { x };
 	int ee = y.i >> 23 & 0xff;
 	if (!ee) {
 		if (x) {
@@ -278,20 +278,20 @@ static const unsigned long mask80 = 0x80808080;
 do                                                  \
 {                                                   \
 	if(p[x] == '\0')                                \
-		return ((unsigned int*)p - (unsigned int*)str + x); \
+		return ((size_t*)p - (size_t*)str + x); \
 } while(0)
 
-unsigned int strlen(const char* str)
+size_t strlen(const char* str)
 {
 	const char* p;
 	const unsigned long* lp;
 
 	/* Skip the first few bytes until we have an aligned p */
-	for (p = str; (unsigned int)p & LONGPTR_MASK; p++)
+	for (p = str; (size_t)p & LONGPTR_MASK; p++)
 	{
 		if (*p == '\0')
 		{
-			return ((unsigned int*)p - (unsigned int*)str);
+			return ((size_t*)p - (size_t*)str);
 		}
 	}
 
@@ -316,7 +316,7 @@ unsigned int strlen(const char* str)
 #include <string.h>
 int memcmp(const void* p1, const void* p2, size_t n)
 {
-	unsigned int i;
+	size_t i;
 
 	/**
 		* p1 and p2 are the same memory? easy peasy! bail out
@@ -375,7 +375,7 @@ char* __strchrnul(const char* s, int c)
 		return (char*)(uintptr_t)s + strlen(s);
 	}
 
-	for (; (unsigned int)s % ALIGN; s++)
+	for (; (size_t)s % ALIGN; s++)
 	{
 		if (!*s || *(const unsigned char*)s == c)
 		{
