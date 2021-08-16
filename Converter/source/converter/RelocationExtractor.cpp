@@ -62,17 +62,29 @@ bool RelocationExtractor::processRelocationSection(
                        .offset = static_cast<u32>(value),
                        .name = name};
 
-    if (mRemapper != nullptr) {
-      auto wrapped_affected = mRemapper(affected, nullptr);
+    if (section_index == SHN_ABS) {
+      source = RelocationExtractor::MapEntry{
+          .section = Section_RawAddress_StaticOrDynamic,
+          .offset = static_cast<u32>(value),
+          .name = name};
+    } else if (mRemapper != nullptr) {
       auto wrapped_source = mRemapper(source, &name);
 
-      if (!wrapped_affected.has_value() || !wrapped_source.has_value()) {
+      if (!wrapped_source.has_value()) {
         continue; // skip over relocations to .mwcats
       }
 
-      affected = wrapped_affected.value();
       source = wrapped_source.value();
       source.name = name;
+    }
+
+    if (mRemapper != nullptr) {
+      auto wrapped_affected = mRemapper(affected, nullptr);
+
+      if (!wrapped_affected.has_value()) {
+        continue; // skip over relocations to .mwcats
+      }
+      affected = wrapped_affected.value();
     }
 
     assert(affected.section == 0);
