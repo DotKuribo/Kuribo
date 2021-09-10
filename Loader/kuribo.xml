@@ -1,0 +1,25 @@
+<wiidisc version="1"> 
+	<id game="RMC"/>  
+	<options>
+		<section name="Kuribo">
+			<option name="Kuribo Files">
+				<choice name="Enabled">
+					<patch id="kuribof" />
+				</choice>
+			</option>
+		</section>
+	</options>
+
+
+	<patch id="kuribof">
+		<folder external="/Kuribo!" disc="/Kuribo!" create="true" recusive="true" />
+		<memory offset="0x00001CDE" value="8000" />
+		<memory offset="0x00001CE2" value="28B8" />
+		<memory offset="0x00001F5A" value="8000" />
+		<memory offset="0x00001F5E" value="28B8" />
+		<memory valuefile="/Kuribo!/{$__gameid}{$__region}{$__maker}.gct" offset="0x800028B8" />
+	    <memory valuefile="codehandler.bin" offset="0x80001800" />
+		<memory ocarina="true" value="3CA0CC01380000613C80450098058000" offset="0x800018A8" />
+	</patch>
+
+</wiidisc>
