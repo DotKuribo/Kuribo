@@ -19,7 +19,7 @@ Kuribo loads mods from the `mods` folder on your SD card, allowing drag-and-drop
 ## Download (standalone):
 This is for MKW PAL:
 - Grab the loader cheat code [here](https://github.com/riidefi/Kuribo/blob/master/Loader/Basic.txt).
-- Grab the PAL kernel [here](https://cdn.discordapp.com/attachments/690031212852805679/885723616078086144/KuriboKernel). Alternatively build the project with cmake.
+- Grab the PAL kernel [here](https://cdn.discordapp.com/attachments/690031212852805679/885726577814564934/KuriboKernel.bin). Alternatively build the project with cmake.
   - Place this in `Kuribo!/System/KuriboKernel.bin` in your extracted ISO. The `Kuribo!` folder should be on the same level as the `Race` folder
   - (Steps for riivolution): Alternatively use [this]([here](https://github.com/riidefi/Kuribo/blob/master/Loader/kuribo.xml), placing a .gct containing the loader cheatcode in a "Kuribo!" folder on your SD card named RMCP01.gct. (You still need `sd://Kuribo!/System/KuriboKernel.bin`)
 - Place mods (.kxe files) in the Kuribo!/Mods folder
