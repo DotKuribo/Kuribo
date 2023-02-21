@@ -176,11 +176,6 @@ kuribo::kxer::LoadResult handleRelocation(const kx::bin::Relocation* reloc,
     KURIBO_LOG("Invalid relocation: %u\n", reloc->r_type);
     return LoadResult::BadReloc;
   }
-#if KURIBO_PLATFORM_WII
-  dcbst(affected.p32);
-  asm("sync");
-  icbi(affected.p32);
-#endif
 
   return LoadResult::Success;
 }
@@ -286,6 +281,15 @@ LoadResult Load(const LoadParam& param, LoadedKXE& out) {
 
   if (result != LoadResult::Success)
     return result;
+
+#if KURIBO_PLATFORM_WII
+  // Cache blocks are 32 bytes in size
+  for (int i = 0; i < pHeader->code.file_size; i += 32) {
+    dcbst(pCode.get() + i);
+    asm("sync");
+    icbi(pCode.get() + i);
+  }
+#endif
 
   out.prologue = reinterpret_cast<kuribo_module_prologue>(
       pCode.get() + pHeader->entry_point_offset);
