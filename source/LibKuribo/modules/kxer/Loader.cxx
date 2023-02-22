@@ -287,9 +287,9 @@ LoadResult Load(const LoadParam& param, LoadedKXE& out) {
   auto* pCacheBlock = reinterpret_cast<u8*>(
       reinterpret_cast<u32>(pCode.get()) & ~0x1F);
   for (u32 i = 0; i < pHeader->code.file_size; i += 32) {
-    dcbst(pCode.get() + i);
+    dcbst(pCacheBlock + i);
     asm("sync");
-    icbi(pCode.get() + i);
+    icbi(pCacheBlock + i);
   }
 #endif
 
