@@ -284,7 +284,8 @@ LoadResult Load(const LoadParam& param, LoadedKXE& out) {
 
 #if KURIBO_PLATFORM_WII
   // Cache blocks are 32 bytes in size
-  for (int i = 0; i < pHeader->code.file_size; i += 32) {
+  KURIBO_ASSERT((reinterpret_cast<u32>(pCode.get()) % 32) == 0); 
+  for (u32 i = 0; i < pHeader->code.file_size; i += 32) {
     dcbst(pCode.get() + i);
     asm("sync");
     icbi(pCode.get() + i);
