@@ -287,7 +287,7 @@ LoadResult Load(const LoadParam& param, LoadedKXE& out) {
   auto *cacheBegin = reinterpret_cast<u8*>(
       reinterpret_cast<u32>(pCode.get()) & ~0x1F);
   auto *cacheEnd = reinterpret_cast<u8*>(
-      (reinterpret_cast<u32>(pCode.get()) + pHeader->code.file_size + 0x20) & ~0x1F);
+      (reinterpret_cast<u32>(pCode.get()) + pHeader->code.file_size + 0x1F) & ~0x1F);
   for (auto* it = cacheBegin; it < cacheEnd; it += 32) {
     dcbst(it);
     asm("sync");
