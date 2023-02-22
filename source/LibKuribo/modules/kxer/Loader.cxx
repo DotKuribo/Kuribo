@@ -284,13 +284,14 @@ LoadResult Load(const LoadParam& param, LoadedKXE& out) {
 
 #if KURIBO_PLATFORM_WII
   // Cache blocks are 32 bytes in size
-  u32 adjustment = reinterpret_cast<u32>(pCode.get()) % 32;
-  auto* pCacheBlock = reinterpret_cast<u8*>(
-      reinterpret_cast<u32>(pCode.get()) - adjustment);
-  for (u32 i = 0; i < pHeader->code.file_size + adjustment; i += 32) {
-    dcbst(pCacheBlock + i);
+  auto *cacheBegin = reinterpret_cast<u8*>(
+      reinterpret_cast<u32>(pCode.get()) & ~0x1F);
+  auto *cacheEnd = reinterpret_cast<u8*>(
+      (reinterpret_cast<u32>(pCode.get()) + pHeader->code.file_size + 0x20) & ~0x1F);
+  for (auto* it = cacheBegin; it < cacheEnd; it += 32) {
+    dcbst(it);
     asm("sync");
-    icbi(pCacheBlock + i);
+    icbi(it);
   }
 #endif
 
