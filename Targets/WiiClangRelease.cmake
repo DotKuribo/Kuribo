@@ -20,13 +20,13 @@ set(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} ${WII_LINK}")
 set(CMAKE_CXX_LINK_FLAGS "${CMAKE_CXX_LINK_FLAGS} ${WII_LINK}")
 
 
-set(LIBSTDCPP_VERSION "10.2.0")
+set(LIBSTDCPP_VERSION "12.1.0")
 set(DKP_PATH "C:/devkitPro/devkitPPC/powerpc-eabi/include")
 
 include_directories(SYSTEM
-	"C:/devkitPro/devkitPPC/powerpc-eabi/include/c++/10.2.0"
+	"C:/devkitPro/devkitPPC/powerpc-eabi/include/c++/${LIBSTDCPP_VERSION}"
 	"C:/devkitPro/devkitPPC/powerpc-eabi/include"
-	"C:/devkitPro/devkitPPC/powerpc-eabi/include/c++/10.2.0/powerpc-eabi"
+	"C:/devkitPro/devkitPPC/powerpc-eabi/include/c++/${LIBSTDCPP_VERSION}/powerpc-eabi"
 )
 
 set(CMAKE_C_COMPILER_FORCED TRUE)

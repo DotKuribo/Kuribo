@@ -75,23 +75,23 @@ kuribo::kxer::LoadResult handleRelocation(const kx::bin::Relocation* reloc,
              reloc->source_addend;
   } else if (reloc->source_section == 0xFD) {
     source = reloc->source_offset + reloc->source_addend;
-    KURIBO_LOG("0xFD: Linking to %08x\n", source);
+    // KURIBO_LOG("0xFD: Linking to %08x\n", source);
   } else if (reloc->source_section == 0xFF) {
     if (pImports == nullptr) {
       KURIBO_LOG("Imports section doesn't exist, but is referenced\n");
       return LoadResult::BadReloc;
     }
     auto* tbl = reinterpret_cast<kx::bin::BinaryString*>(pImports);
-    KURIBO_LOG("TBL %p\n", tbl);
-    KURIBO_LOG("STRING ID: %u\n", reloc->source_offset);
+    // KURIBO_LOG("TBL %p\n", tbl);
+    // KURIBO_LOG("STRING ID: %u\n", reloc->source_offset);
     const auto symbol = kx::bin::resolveBinaryString(
         tbl[reloc->source_offset], pHeader, param.binary.size());
 
-    KURIBO_LOG("Symbol: %s (%u)\n", symbol.begin(), symbol.size());
+    // KURIBO_LOG("Symbol: %s (%u)\n", symbol.begin(), symbol.size());
     auto resolved = SymbolManager::getStaticInstance().getProcedure(
         tbl[reloc->source_offset].crc32);
     if (resolved == 0) {
-      KURIBO_LOG("Failed to link: unknown symbol!\n");
+      KURIBO_LOG("Failed to link: unknown symbol (%s)!\n", symbol.begin());
       if (param.invalid_symbol != nullptr)
         *param.invalid_symbol = symbol;
       return LoadResult::BadReloc;
@@ -99,8 +99,9 @@ kuribo::kxer::LoadResult handleRelocation(const kx::bin::Relocation* reloc,
     source = resolved + reloc->source_addend;
   }
 
-  KURIBO_LOG("Reloc: %u, Source: %p, Dest: %p\n", reloc->r_type, (void*)source,
-             affected.p8);
+  // KURIBO_LOG("Reloc: %u, Source: %p, Dest: %p\n", reloc->r_type,
+  // (void*)source,
+  //            affected.p8);
   switch (reloc->r_type) {
   case R_PPC_NONE:
     break;
@@ -133,7 +134,7 @@ kuribo::kxer::LoadResult handleRelocation(const kx::bin::Relocation* reloc,
   }
   case R_PPC_REL24: {
     const u32 low = source - affected.d32;
-    KURIBO_LOG("LOW: %u\n", low);
+    // KURIBO_LOG("LOW: %u\n", low);
     *affected.p32 = (*affected.p32 & ~0x03ff'fffc) | (low & 0x03ff'fffc);
     break;
   }
@@ -143,12 +144,12 @@ kuribo::kxer::LoadResult handleRelocation(const kx::bin::Relocation* reloc,
     break;
   }
   case R_PPC_REL32: {
-    KURIBO_LOG("REL32\n");
+    // KURIBO_LOG("REL32\n");
     *affected.p32 = source - affected.d32;
     break;
   }
   case 109: {
-    KURIBO_PRINTF("HANDLING 109\n");
+    // KURIBO_PRINTF("HANDLING 109\n");
 
     // Awful hack to add quick support for EMB SDATA relocs
     // R12 *might* not be safe, still...
@@ -199,8 +200,8 @@ handleRelocations(const kx::bin::Relocation* pRelocs, u32 reloc_size, u8* pCode,
        reinterpret_cast<const u8*>(reloc) <
        reinterpret_cast<const u8*>(pRelocs) + reloc_size;
        ++reloc) {
-    KURIBO_LOG("Handling reloc %p out of %p\n", reloc,
-               reinterpret_cast<const u8*>(pRelocs) + reloc_size);
+    // KURIBO_LOG("Handling reloc %p out of %p\n", reloc,
+    //            reinterpret_cast<const u8*>(pRelocs) + reloc_size);
     if (reloc->affected_offset & 0x8000'0000) {
       KURIBO_PRINTF("!!! SKIPPING INVALID RELOCATION\n");
       if (param.invalid_symbol != nullptr)
@@ -284,10 +285,11 @@ LoadResult Load(const LoadParam& param, LoadedKXE& out) {
 
 #if KURIBO_PLATFORM_WII
   // Cache blocks are 32 bytes in size
-  auto *cacheBegin = reinterpret_cast<u8*>(
-      reinterpret_cast<u32>(pCode.get()) & ~0x1F);
-  auto *cacheEnd = reinterpret_cast<u8*>(
-      (reinterpret_cast<u32>(pCode.get()) + pHeader->code.file_size + 0x1F) & ~0x1F);
+  auto* cacheBegin =
+      reinterpret_cast<u8*>(reinterpret_cast<u32>(pCode.get()) & ~0x1F);
+  auto* cacheEnd = reinterpret_cast<u8*>(
+      (reinterpret_cast<u32>(pCode.get()) + pHeader->code.file_size + 0x1F) &
+      ~0x1F);
   for (auto* it = cacheBegin; it < cacheEnd; it += 32) {
     dcbst(it);
     asm("sync");

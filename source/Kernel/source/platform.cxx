@@ -42,7 +42,7 @@ KURIBO_SET_OS(OSReport, OSFatal)
 KURIBO_SET_DVD(DVDReadPrio, DVDClose)
 
 kuribo::mem::Heap* HostGetModuleAllocator() {
-  constexpr int size = float(923'448) * .7f;
+  constexpr int size = 0x100000;
   static char GLOBAL_HEAP[size];
 
   static kuribo::mem::FreeListHeap modules_allocator(&GLOBAL_HEAP[0], size);
@@ -55,11 +55,11 @@ kuribo::mem::Heap* HostGetModuleAllocator() {
 // Configuration for PAL MKW
 //
 
-/* Defines the function addresses in PAL MKW */
-#define OSReport 0x801A25D0
-#define OSFatal 0x801A4EC4
-#define DVDReadPrio 0x8015E834
-#define DVDClose 0x8015E568
+/* Defines the function addresses in NTSC-U SMS */
+#define OSReport 0x80344644
+#define OSPanic 0x803446C4
+#define DVDReadPrio 0x8034BD74
+#define DVDClose 0x8034B9DC
 
 /* Sets GC/Wii OS functions. */
 KURIBO_SET_OS(OSReport, OSFatal)
@@ -67,28 +67,31 @@ KURIBO_SET_OS(OSReport, OSFatal)
 /* Sets functions to read from the disc. */
 KURIBO_SET_DVD(DVDReadPrio, DVDClose)
 
-class MKW_PAL_Allocator : private kuribo::mem::Heap {
+class SMS_NTSC_U_Allocator : private kuribo::mem::Heap {
 public:
-  MKW_PAL_Allocator(void* heap) : mHeap(heap) {}
+  SMS_NTSC_U_Allocator(void* heap) : mHeap(heap) {}
 
   kuribo::mem::Heap* get() { return this; }
 
 private:
   void* alloc(u32 size, u32 align) noexcept override {
-    return ((char* (*)(unsigned, void*, unsigned))0x80229DE0)(size, mHeap,
-                                                              align);
+    return ((char* (*)(unsigned, int, void*))0x802C3740)(
+        size, align,
+        mHeap); // JKRHeap::alloc(size_t size, int alignment, JKRHeap *heap)
   }
   void free(void* ptr) noexcept override {
-    (*(void (**)(void*, void*))(*(s32*)mHeap + 24))(mHeap, ptr);
+    ((void (*)(void*, void*))0x802C37B8)(
+        ptr, mHeap); // JKRHeap::free(void *ptr, JKRHeap *heap)
   }
 
   void* mHeap;
 };
 
-kuribo::DeferredInitialization<MKW_PAL_Allocator> mkw_allocator;
+kuribo::DeferredInitialization<SMS_NTSC_U_Allocator> sms_allocator;
 kuribo::mem::Heap* HostGetModuleAllocator() {
   KURIBO_PRINTF("Using new alloc system\n");
-  mkw_allocator.initialize(*(void**)0x802A40A4);
-  return mkw_allocator->get();
+  sms_allocator.initialize(
+      *(void**)0x8040E298); // Initialize using global pointer to root heap
+  return sms_allocator->get();
 }
 #endif
