@@ -13,7 +13,7 @@ namespace kuribo {
 
 class SymbolManager {
 public:
-  SymbolManager(mem::Heap& heap) : mpHeap(&heap), mEntryCapacity(128) {
+  SymbolManager(mem::Heap& heap) : mpHeap(&heap), mEntryCapacity(512) {
     mEntries = new (heap) Entry[mEntryCapacity];
   }
   ~SymbolManager() { mpHeap->free(mEntries); }
