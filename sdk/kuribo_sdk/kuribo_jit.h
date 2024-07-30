@@ -2,8 +2,6 @@
 
 #include "kuribo_types.h"
 
-#define KX_API extern "C"
-
 //! @brief A compiled function handle.
 //!
 typedef void (*kxCompiledFunction)();
@@ -34,7 +32,7 @@ kxCompiledFunction kxGeckoJitCompileCodes(
 //!
 //! @return Return if operation succeeded.
 //!
-inline bool kxGeckoJitRunCompiledFunction(kxCompiledFunction func) {
+static inline bool kxGeckoJitRunCompiledFunction(kxCompiledFunction func) {
   if (!func)
     return false;
 

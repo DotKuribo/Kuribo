@@ -33,3 +33,5 @@ typedef double f64;
 #else
 #define KURIBO_EXTERN_C
 #endif
+
+#define KX_API extern "C"
