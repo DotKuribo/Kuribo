@@ -83,27 +83,7 @@ static inline void __kuribo_on_detach() {
     node->dtor = dtor;                                                         \
     node->obj = obj;                                                           \
     __kuribo_dtor_list = node;                                                 \
-  }                                                                            \
-  /* sizeof(__kuribo_guard) == 8 */                                            \
-  struct __kuribo_guard {                                                      \
-    u8 is_init; /* This byte must be here, the rest are free */                \
-    u8 _pad[3];                                                                \
-                                                                               \
-    /* On PPC, we will just disable multitasking */                            \
-    u32 msr_save;                                                              \
-  };                                                                           \
-  KURIBO_EXTERN_C int __cxa_guard_acquire(__kuribo_guard* guard) {                             \
-    const u32 msr = __kuribo_mfmsr();                                          \
-    __kuribo_mtmsr(msr & ~0x8000);                                             \
-                                                                               \
-    guard->is_init = 0;                                                        \
-    guard->msr_save = msr;                                                     \
-                                                                               \
-    return 1;                                                                  \
-  }                                                                            \
-  KURIBO_EXTERN_C void __cxa_guard_release(__kuribo_guard* guard) {                            \
-    __kuribo_mtmsr(guard->msr_save);                                           \
-  }
+  }          
 
 #else // KURIBO_NO_ABI_HELPERS
 

@@ -130,10 +130,35 @@ void SetEventHandlerAddress(u32 address) {
   kuribo::directBranch((void*)address, (void*)(u32)&HandleReload);
 }
 
+struct __kuribo_guard {
+  u8 is_init; /* This byte must be here, the rest are free */
+  u8 _pad[3];
 
+  /* On PPC, we will just disable multitasking */
+  u32 msr_save;
+};
+static_assert(sizeof(__kuribo_guard) == 8);
+
+// This is actually unsafe because we could interrupt while doing this. The SDK
+// interrupt handler specifically handles OSDisableInterrupts and we should use
+// that directly.
+extern "C" int __cxa_guard_acquire(__kuribo_guard* guard) {
+  const u32 msr = __kuribo_mfmsr();
+  __kuribo_mtmsr(msr & ~0x8000);
+
+  guard->is_init = 0;
+  guard->msr_save = msr;
+
+  return 1;
+}
+extern "C" void __cxa_guard_release(__kuribo_guard* guard) {
+  __kuribo_mtmsr(guard->msr_save);
+}
 
 static void ExposeSdk(kuribo::SymbolManager& sym) {
   sym.registerProcedure("OSReport", FFI_NAME(os_report));
+  sym.registerProcedure("__cxa_guard_acquire", (u32)&__cxa_guard_acquire);
+  sym.registerProcedure("__cxa_guard_release", (u32)&__cxa_guard_release);
 }
 
 static void ExposeModules(kuribo::SymbolManager& sym) {
