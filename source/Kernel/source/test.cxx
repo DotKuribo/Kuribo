@@ -163,10 +163,17 @@ static void ExposeSdk(kuribo::SymbolManager& sym) {
 
 static void ExposeModules(kuribo::SymbolManager& sym) {
   sym.registerProcedure("kxSystemReloadAllModules", (u32)&QueueReload);
-  sym.registerProcedure("kxSystemSetEventCaller", (u32)&SetEventHandlerAddress);
+  sym.registerProcedure("kxSystemInstallReloadHandler",
+                        (u32)&SetEventHandlerAddress);
   sym.registerProcedure("kxSystemPrintLoadedModules", (u32)&PrintLoadedModules);
   sym.registerProcedure("_ZN9ScopedLog10sLogIndentE",
                         (u32)&ScopedLog::sLogIndent);
+  sym.registerProcedure("kxRegisterProcedureEx",
+                        (u32)&kuribo::kxRegisterProcedureEx);
+  sym.registerProcedure("kxGetProcedureEx", (u32)&kuribo::kxGetProcedureEx);
+  sym.registerProcedure("kxRegisterProcedure",
+                        (u32)&kuribo::kxRegisterProcedure);
+  sym.registerProcedure("kxGetProcedure", (u32)&kuribo::kxGetProcedure);
 }
 
 kuribo::mem::Heap* sModulesHeap;

@@ -25,9 +25,6 @@ KX_API void kxSystemPrintLoadedModules(void);
  */
 KX_API void kxSystemReloadAllModules(void);
 
-/* To avoid a kernel update, I'm not actually renaming the symbol. */
-#define kxSystemInstallReloadHandler kxSystemSetEventCaller
-
 /**
  * @brief Injects the following ppc instruction at a MEM1 address:
  *        `b kuribo_reload_check_pending`

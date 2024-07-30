@@ -61,4 +61,11 @@ void kxRegisterProcedure(const char* symbol, u32 value);
 KX_EXPORT
 u32 kxGetProcedure(const char* symbol);
 
+KX_EXPORT
+void kxRegisterProcedureEx(const char* symbol_str, u32 symbol_strlen, u32 value,
+                           u32 crc32_hint);
+
+KX_EXPORT
+u32 kxGetProcedureEx(const char* symbol_str, u32 symbol_strlen, u32 crc32_hint);
+
 } // namespace kuribo

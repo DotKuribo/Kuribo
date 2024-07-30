@@ -1,5 +1,5 @@
 /*========================================
-||    Kuribo SDK 3.1
+||    Kuribo SDK 3.2
 ==========================================
 
 Supported targets:
@@ -8,6 +8,7 @@ Supported targets:
 Supported compilers:
 - Devkitpro GCC
 - LLVM Clang
+- Metrowerks CodeWarrior
 
 Provided APIs:
 - KURIBO_MODULE_BEGIN(name, author, version) / KURIBO_MODULE_END()
@@ -34,6 +35,7 @@ Changelog:
  - 2.0: Added linking APIs
  - 3.0: Added C++ API
  - 3.1: Added pp::Instructions
+ - 3.2: Expose kuribo_modules.h, kuribo_symbols.h, `kx` namespace alias
 
 Example Usage:
   KURIBO_MODULE_BEGIN("Demo Module", "riidefi", "Beta")
@@ -152,7 +154,7 @@ Example Usage:
 
 #if defined(__cplusplus)
 
-namespace pp {
+namespace kx {
 
 struct Patch {
   u32 mAddr; // Address in memory
@@ -303,6 +305,8 @@ inline void* Import(const char* name) { return KURIBO_GET_PROCEDURE(name); }
 
 enum Instructions { SkipInstruction = 0x60000000, Return = 0x4E800020 };
 
-} // namespace pp
+} // namespace kx
+
+#define pp kx
 
 #endif
