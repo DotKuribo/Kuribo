@@ -1,8 +1,8 @@
-#include <sdk/kuribo_sdk.h>
+#include <kuribo_sdk.h>
 
 extern "C" void OSReport(const char*, ...);
 
-pp::DefineModule("SecretStringPrinter", "examples", "1.0");
+kx::DefineModule("SecretStringPrinter", "examples", "1.0");
 
 // This is defined in an entirely different .kxe file -- perhaps compiled with a
 // different compiler, written in a different language.
@@ -18,7 +18,7 @@ void PrintSecretString_Manual() {
   // Unlike the automatic case, we can manually handle what happens if such a
   // symbol is not found. In the automatic case we provide an error about a
   // missing function and quit. Here we can fallback to another approach.
-  void* addr_of_fn = pp::Import("GetSecretString");
+  void* addr_of_fn = kx::Import("GetSecretString");
 
   if (!addr_of_fn) {
     OSReport("Could not find `GetSecretString` function.\n");
@@ -30,5 +30,5 @@ void PrintSecretString_Manual() {
 }
 
 // Call our methods when this module loads
-pp::OnLoad(PrintSecretString_Automatic);
-pp::OnLoad(PrintSecretString_Manual);
+kx::OnLoad(PrintSecretString_Automatic);
+kx::OnLoad(PrintSecretString_Manual);
