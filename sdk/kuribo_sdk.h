@@ -1,5 +1,5 @@
 /*========================================
-||    Kuribo SDK 3.2
+||    Kuribo SDK 3.3
 ==========================================
 
 Supported targets:
@@ -36,6 +36,7 @@ Changelog:
  - 3.0: Added C++ API
  - 3.1: Added pp::Instructions
  - 3.2: Expose kuribo_modules.h, kuribo_symbols.h, `kx` namespace alias
+ - 3.3: Expose kuribo_szs.h
 
 Example Usage:
   KURIBO_MODULE_BEGIN("Demo Module", "riidefi", "Beta")

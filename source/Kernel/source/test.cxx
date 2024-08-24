@@ -25,6 +25,8 @@
 
 #include "FallbackAllocator/free_list_heap.hxx"
 
+#include "LibKuribo/compr.hxx"
+
 kuribo::DeferredInitialization<eastl::vector<kuribo::kxer::LoadedKXE>>
     spLoadedModules;
 bool sReloadPending = false;
@@ -168,12 +170,20 @@ static void ExposeModules(kuribo::SymbolManager& sym) {
   sym.registerProcedure("kxSystemPrintLoadedModules", (u32)&PrintLoadedModules);
   sym.registerProcedure("_ZN9ScopedLog10sLogIndentE",
                         (u32)&ScopedLog::sLogIndent);
+
+  // kuribo_symbols.h
   sym.registerProcedure("kxRegisterProcedureEx",
                         (u32)&kuribo::kxRegisterProcedureEx);
   sym.registerProcedure("kxGetProcedureEx", (u32)&kuribo::kxGetProcedureEx);
   sym.registerProcedure("kxRegisterProcedure",
                         (u32)&kuribo::kxRegisterProcedure);
   sym.registerProcedure("kxGetProcedure", (u32)&kuribo::kxGetProcedure);
+
+  // kuribo_szs.h
+  sym.registerProcedure("kxSzsCheckCompressed",
+                        (u32)&kuribo::kxSzsCheckCompressed);
+  sym.registerProcedure("kxSzsDecodedSize", (u32)&kuribo::kxSzsDecodedSize);
+  sym.registerProcedure("kxSzsDecodeIntoV1", (u32)&kuribo::kxSzsDecodeIntoV1);
 }
 
 kuribo::mem::Heap* sModulesHeap;

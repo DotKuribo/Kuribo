@@ -13,7 +13,7 @@ add_library(LibKuribo
 	"modules/SymbolManager.cxx"
 	"filesystem.hxx"
 	"filesystem.cxx"
-)
+ "compr.hxx" "compr.cxx")
 
 target_include_directories(LibKuribo PUBLIC
 	"./"
